@@ -3,7 +3,10 @@ package cn.com.lasong.inject;
 import com.android.build.api.transform.QualifiedContent;
 import com.android.build.api.transform.Transform;
 
+import java.util.HashSet;
 import java.util.Set;
+
+import cn.com.lasong.utils.Constants;
 
 /**
  * Author: zhusong
@@ -19,7 +22,7 @@ public class InjectTransform extends Transform {
 
     @Override
     public Set<QualifiedContent.ContentType> getInputTypes() {
-        return null;
+        return Constants.CLASSES;
     }
 
     @Override

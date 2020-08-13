@@ -3,6 +3,7 @@ package cn.com.lasong.inject;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ApplicationPlugin;
+import org.gradle.api.plugins.PluginContainer;
 
 /**
  * Author: zhusong
@@ -13,14 +14,17 @@ import org.gradle.api.plugins.ApplicationPlugin;
 public class InjectPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
-        System.out.println("========> InjectPlugin Start<========");
-        boolean isApplication = project.getPlugins().hasPlugin(ApplicationPlugin.class);
-        System.out.println("isApplication : " + isApplication);
+        PluginContainer plugins = project.getPlugins();
+        boolean isApplication = plugins.hasPlugin("com.android.application");
+        boolean isLibrary = plugins.hasPlugin("com.android.library");
+        //确保只能在含有application和library的build.gradle文件中引入
+        if (!isApplication && !isLibrary) {
+            return;
+        }
 
-        //确保只能在含有application的build.gradle文件中引入
-//        if (!project.getPlugins().hasPlugin("com.android.application")) {
-//            throw new GradleException("Android Application plugin required");
-//        }
-        System.out.println("========> InjectPlugin Finish<========");
+        System.out.println("==> InjectPlugin Start");
+        System.out.println("==> " + (isApplication ? "Application" : "Library"));
+
+        System.out.println("==> InjectPlugin Finish");
     }
 }
