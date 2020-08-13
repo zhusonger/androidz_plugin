@@ -1,8 +1,10 @@
 package cn.com.lasong.inject;
 
+
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ApplicationPlugin;
+import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.PluginContainer;
 
 /**
@@ -21,10 +23,13 @@ public class InjectPlugin implements Plugin<Project> {
         if (!isApplication && !isLibrary) {
             return;
         }
-
         System.out.println("==> InjectPlugin Start");
-        System.out.println("==> " + (isApplication ? "Application" : "Library"));
-
+        System.out.println("==> Current Module is " + (isApplication ? "Application" : "Library"));
+        ExtensionContainer extensions = project.getExtensions();
+        Object android = extensions.findByName("android");
+        System.out.println("==> android:"+android);
+        //注册task任务
+//        appExtension.registerTransform(new InjectTransform());
         System.out.println("==> InjectPlugin Finish");
     }
 }
