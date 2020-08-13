@@ -6,7 +6,7 @@ dependencies {
     implementation gradleApi()
 
     //从2.0.0版本开始就是在gradle-api中了
-    implementation 'com.android.tools.build:gradle-api:3.3.2'
+    implementation 'com.android.tools.build:gradle:3.5.3'
 
     // ASM 相关
     implementation 'org.ow2.asm:asm:8.0.1'
