@@ -1,0 +1,32 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+dependencies {
+    //gradle sdk
+    implementation gradleApi()
+
+    //从2.0.0版本开始就是在gradle-api中了
+    implementation 'com.android.tools.build:gradle-api:4.0.1'
+
+    // ASM 相关
+    implementation 'org.ow2.asm:asm:8.0.1'
+    implementation 'org.ow2.asm:asm-util:8.0.1'
+    implementation 'org.ow2.asm:asm-commons:8.0.1'
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+    google()
+}
+
+group = 'cn.com.lasong'
+version = "1.0.6"
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../repo/greeting'))
+        }
+    }
+}
