@@ -1,2 +1,2 @@
 # androidz_plugin
-AndroidZ开源库插件项目
+AndroidZ开源项目的插件库
