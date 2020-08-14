@@ -1,13 +1,15 @@
 package cn.com.lasong.inject;
 
 
-import com.android.build.gradle.AppExtension;
+import com.android.build.gradle.BaseExtension;
 
+import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.plugins.ApplicationPlugin;
 import org.gradle.api.plugins.ExtensionContainer;
-import org.gradle.api.plugins.PluginContainer;
+import org.jetbrains.annotations.NotNull;
+
+import cn.com.lasong.utils.PluginHelper;
 
 /**
  * Author: zhusong
@@ -17,23 +19,46 @@ import org.gradle.api.plugins.PluginContainer;
  */
 public class InjectPlugin implements Plugin<Project> {
     @Override
-    public void apply(Project project) {
-        PluginContainer plugins = project.getPlugins();
-        boolean isApplication = plugins.hasPlugin("com.android.application");
-        boolean isLibrary = plugins.hasPlugin("com.android.library");
-        //确保只能在含有application和library的build.gradle文件中引入
-        if (!isApplication && !isLibrary) {
+    public void apply(@NotNull Project project) {
+        // 只处理应用和库模块
+        if (!PluginHelper.isAppOrLibrary(project)) {
             return;
         }
-        System.out.println("==> InjectPlugin Start");
-        System.out.println("==> Current Module is " + (isApplication ? "Application" : "Library"));
+
+        // 拼装项目名称
+        StringBuilder builder = new StringBuilder();
+        builder.append(":").append(project.getName());
+        Project parent = project.getParent();
+        while (PluginHelper.isAppOrLibrary(parent)) {
+            builder.insert(0, parent.getName()+":");
+            parent = parent.getParent();
+        }
+        String group = builder.toString();
+
+        // 开始注册
+        PluginHelper.println(group, "InjectPlugin Start");
         ExtensionContainer extensions = project.getExtensions();
-        AppExtension app = extensions.findByType(AppExtension.class);
-        System.out.println("==> app:"+app);
-        assert app != null;
-        app.registerTransform(new InjectTransform());
+
+
+        NamedDomainObjectContainer<Inject> injects = project.container(Inject.class);
+//        InjectExtension injectExtension = extensions.create("inject", InjectExtension.class);
+
+        // Create NamedDomainObjectContainer instance for
+        // a collection of Inject objects
+
+        // Add the container instance to our project
+        // with the name products.
+        extensions.add("inject", injects);
+
+
+        Object inject = extensions.findByName("inject");
+//        PluginHelper.println(group, injectExtension.toString());
+
+        BaseExtension android = extensions.findByType(BaseExtension.class);
+        assert android != null;
         //注册task任务
-//        appExtension.registerTransform(new InjectTransform());
-        System.out.println("==> InjectPlugin Finish");
+        android.registerTransform(new InjectTransform(project, PluginHelper.isApplication(project),
+                group));
+        PluginHelper.println(group, "InjectPlugin Finish");
     }
 }
