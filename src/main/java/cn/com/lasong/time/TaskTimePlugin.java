@@ -28,7 +28,7 @@ import cn.com.lasong.utils.PluginHelper;
  * Date: 2020/8/13
  * Description: 打印任务耗时, 排查打包耗时的任务
  */
-public class TaskBuildTimePlugin implements Plugin<Project> {
+public class TaskTimePlugin implements Plugin<Project> {
 
     Map<String, TaskTime> timeMap = new LinkedHashMap<>();
 
@@ -86,7 +86,7 @@ public class TaskBuildTimePlugin implements Plugin<Project> {
                 List<TaskTime> list = new LinkedList<>(values);
                 Collections.sort(list, (taskL, taskR) -> (int) -(taskL.costMs - taskR.costMs));
                 for (TaskTime taskTime : list) {
-                    PluginHelper.println(name, taskTime.name+"["+taskTime.costMs+"ms]");
+                    PluginHelper.println(name, taskTime.name+" ["+taskTime.costMs+"ms]");
                 }
                 PluginHelper.println(name, "============================");
             }

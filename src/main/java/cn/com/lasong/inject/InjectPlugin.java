@@ -1,13 +1,22 @@
 package cn.com.lasong.inject;
 
 
+import com.android.annotations.NonNull;
 import com.android.build.gradle.BaseExtension;
 
+import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
+import org.gradle.api.NamedDomainObjectFactory;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.plugins.ExtensionContainer;
+import org.gradle.internal.reflect.Instantiator;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import cn.com.lasong.utils.PluginHelper;
 
@@ -18,6 +27,9 @@ import cn.com.lasong.utils.PluginHelper;
  * Description: 注入插件
  */
 public class InjectPlugin implements Plugin<Project> {
+
+    public static final String EXTENSION_NAME = "allInjects";
+
     @Override
     public void apply(@NotNull Project project) {
         // 只处理应用和库模块
@@ -39,19 +51,37 @@ public class InjectPlugin implements Plugin<Project> {
         PluginHelper.println(name, "InjectPlugin Start");
         ExtensionContainer extensions = project.getExtensions();
 
-
-        NamedDomainObjectContainer<InjectExtension> injectExtensionContainer
-                = project.container(InjectExtension.class);
-        NamedDomainObjectContainer<Inject> injectContainer
-                = project.container(Inject.class);
-        extensions.add("inject", injectExtensionContainer);
-
+        setupExtension(project);
 
         BaseExtension android = extensions.findByType(BaseExtension.class);
         assert android != null;
         //注册task任务
         android.registerTransform(new InjectTransform(project, PluginHelper.isApplication(project),
                 name));
+        Instantiator instantiator;
         PluginHelper.println(name, "InjectPlugin Finish");
+    }
+
+    /**
+     * 设置插件配置
+     * @param project
+     */
+    private void setupExtension(Project project) {
+        ExtensionContainer extensions = project.getExtensions();
+
+        NamedDomainObjectContainer<InjectExtension> injectExtensions = project.container(InjectExtension.class);
+        extensions.add(EXTENSION_NAME, injectExtensions);
+    }
+
+    public static List<InjectExtension> getAllInjects(Project project) {
+        List<InjectExtension> list = new ArrayList<>();
+
+        ExtensionContainer extensions = project.getExtensions();
+        Object extensionObj = extensions.findByName(EXTENSION_NAME);
+        NamedDomainObjectContainer<InjectExtension> allInjects = (NamedDomainObjectContainer<InjectExtension>) extensionObj;
+        if (null != allInjects) {
+            list.addAll(allInjects);
+        }
+        return list;
     }
 }

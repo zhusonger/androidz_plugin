@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
@@ -73,7 +74,10 @@ public class InjectTransform extends Transform {
     @Override
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
-        project.getExtensions().findByName("inject");
+        List<InjectExtension> allInjects = InjectPlugin.getAllInjects(project);
+        for (InjectExtension item : allInjects) {
+            PluginHelper.println(group, "Transform : " + item.toString());
+        }
         PluginHelper.println(group, "Transform Start");
 
         Context context = transformInvocation.getContext();
@@ -96,10 +100,10 @@ public class InjectTransform extends Transform {
                 // 重命名输出文件（同目录copyFile会冲突）
                 String name = jarInput.getName();
 
-                PluginHelper.println(group, "jar = " + name+", "+src.getAbsolutePath());
+//                PluginHelper.println(group, "jar = " + name+", "+src.getAbsolutePath());
                 File dest = outputProvider.getContentLocation(name, jarInput.getContentTypes(),
                         jarInput.getScopes(), Format.JAR);
-                PluginHelper.println(group, "jar output dest: " + dest.getAbsolutePath());
+//                PluginHelper.println(group, "jar output dest: " + dest.getAbsolutePath());
 //                if (name.equals("com.github.Hitomis.transferee:Transferee:1.6.1")) {
 //                    JarFile jarFile = new JarFile(src);
 //                    Enumeration<JarEntry> entries = jarFile.entries();
@@ -115,11 +119,11 @@ public class InjectTransform extends Transform {
                 // 对directory进行处理
                 File src = directoryInput.getFile();
                 String name = directoryInput.getName();
-                PluginHelper.println(group, "dir: " + name+":"+src.getAbsolutePath());
+//                PluginHelper.println(group, "dir: " + name+":"+src.getAbsolutePath());
                 // 获取输出目录
                 File dest = outputProvider.getContentLocation(name,
                         directoryInput.getContentTypes(), directoryInput.getScopes(), Format.DIRECTORY);
-                PluginHelper.println(group, "dir output dest: "+ dest.getAbsolutePath());
+//                PluginHelper.println(group, "dir output dest: "+ dest.getAbsolutePath());
                 // 将input的目录复制到output指定目录
                 FileUtils.copyDirectory(src, dest);
             }
