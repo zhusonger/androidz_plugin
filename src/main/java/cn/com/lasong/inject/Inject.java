@@ -12,22 +12,19 @@ public class Inject {
     // injectClz: com.hitomi.tilibrary.transfer.TransferAdapter
     // injectMethod:
 
-    private final String name;
-
-    public Inject(String name) {
-        this.name = name;
-    }
-    // 需要注入的名称
-    public String clzName;
-
+    // 需要注入的类名
+    public String className;
+    // 需要注入的方法名
     public String methodName;
+    // 方法参数签名
+    public String signature;
 
     @Override
     public String toString() {
         return "Inject{" +
-                "name='" + name + '\'' +
-                ", clzName='" + clzName + '\'' +
+                "className='" + className + '\'' +
                 ", methodName='" + methodName + '\'' +
+                ", signature='" + signature + '\'' +
                 '}';
     }
 }

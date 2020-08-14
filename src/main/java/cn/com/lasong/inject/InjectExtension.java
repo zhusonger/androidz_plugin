@@ -1,6 +1,13 @@
 package cn.com.lasong.inject;
 
+import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import groovy.lang.Closure;
 
 /**
  * Author: zhusong
@@ -29,4 +36,24 @@ public class InjectExtension {
 
     // 需要注入的项
     public NamedDomainObjectContainer<Inject> injects;
+
+
+    /**
+     * If you need second- or third-level nesting,
+     * you will also have to add overloads that take a Closure,
+     * because Gradle cannot instrument nested extensions at the moment.
+     */
+    public void injects(Action<? super NamedDomainObjectContainer<Inject>> action) {
+        action.execute(injects);
+    }
+
+    @Override
+    public String toString() {
+        return "InjectExtension{" +
+                "name='" + name + '\'' +
+                ", isDebug=" + isDebug +
+                ", group='" + group + '\'' +
+                ", injects=" + injects +
+                '}';
+    }
 }

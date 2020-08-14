@@ -49,7 +49,7 @@ public class PluginHelper {
         println("Inject", message);
     }
     public static void println(String tag, String message) {
-        String out = String.format(Locale.CHINA, "> [%s] :%s", tag, message);
+        String out = String.format(Locale.CHINA, "> [%s] %s", tag, message);
         System.out.println(out);
     }
 }

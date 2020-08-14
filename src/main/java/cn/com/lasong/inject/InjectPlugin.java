@@ -33,32 +33,25 @@ public class InjectPlugin implements Plugin<Project> {
             builder.insert(0, parent.getName()+":");
             parent = parent.getParent();
         }
-        String group = builder.toString();
+        String name = builder.toString();
 
         // 开始注册
-        PluginHelper.println(group, "InjectPlugin Start");
+        PluginHelper.println(name, "InjectPlugin Start");
         ExtensionContainer extensions = project.getExtensions();
 
 
-        NamedDomainObjectContainer<Inject> injects = project.container(Inject.class);
-//        InjectExtension injectExtension = extensions.create("inject", InjectExtension.class);
+        NamedDomainObjectContainer<InjectExtension> injectExtensionContainer
+                = project.container(InjectExtension.class);
+        NamedDomainObjectContainer<Inject> injectContainer
+                = project.container(Inject.class);
+        extensions.add("inject", injectExtensionContainer);
 
-        // Create NamedDomainObjectContainer instance for
-        // a collection of Inject objects
-
-        // Add the container instance to our project
-        // with the name products.
-        extensions.add("inject", injects);
-
-
-        Object inject = extensions.findByName("inject");
-//        PluginHelper.println(group, injectExtension.toString());
 
         BaseExtension android = extensions.findByType(BaseExtension.class);
         assert android != null;
         //注册task任务
         android.registerTransform(new InjectTransform(project, PluginHelper.isApplication(project),
-                group));
-        PluginHelper.println(group, "InjectPlugin Finish");
+                name));
+        PluginHelper.println(name, "InjectPlugin Finish");
     }
 }

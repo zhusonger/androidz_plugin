@@ -73,6 +73,7 @@ public class InjectTransform extends Transform {
     @Override
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
+        project.getExtensions().findByName("inject");
         PluginHelper.println(group, "Transform Start");
 
         Context context = transformInvocation.getContext();
