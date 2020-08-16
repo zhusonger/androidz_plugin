@@ -18,8 +18,10 @@ import org.gradle.api.Project;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
@@ -75,9 +77,11 @@ public class InjectTransform extends Transform {
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
         List<InjectExtension> allInjects = InjectPlugin.getAllInjects(project);
+        Map<String, InjectExtension> injectsMap = new HashMap<>();
         for (InjectExtension item : allInjects) {
-            PluginHelper.println(group, "Transform : " + item.toString());
+            injectsMap.put(item.getGroup(), item);
         }
+
         PluginHelper.println(group, "Transform Start");
 
         Context context = transformInvocation.getContext();
@@ -91,41 +95,15 @@ public class InjectTransform extends Transform {
             outputProvider.deleteAll();
         }
 
-
         for (TransformInput input : inputs) {
             // 遍历输入，分别遍历其中的jar以及directory
             for (JarInput jarInput : input.getJarInputs()) {
                 //对jar文件进行处理
-                File src = jarInput.getFile();
-                // 重命名输出文件（同目录copyFile会冲突）
-                String name = jarInput.getName();
-
-//                PluginHelper.println(group, "jar = " + name+", "+src.getAbsolutePath());
-                File dest = outputProvider.getContentLocation(name, jarInput.getContentTypes(),
-                        jarInput.getScopes(), Format.JAR);
-//                PluginHelper.println(group, "jar output dest: " + dest.getAbsolutePath());
-//                if (name.equals("com.github.Hitomis.transferee:Transferee:1.6.1")) {
-//                    JarFile jarFile = new JarFile(src);
-//                    Enumeration<JarEntry> entries = jarFile.entries();
-//                    while (entries.hasMoreElements()) {
-//                        JarEntry entry = entries.nextElement();
-//                        String entryName = entry.getName();
-//                        System.out.println("entryName: " + entryName+":"+entry.isDirectory());
-//                    }
-//                }
-                FileUtils.copyFile(src, dest);
+                InjectHelper.transformJar(group, jarInput, injectsMap, outputProvider);
             }
             for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
                 // 对directory进行处理
-                File src = directoryInput.getFile();
-                String name = directoryInput.getName();
-//                PluginHelper.println(group, "dir: " + name+":"+src.getAbsolutePath());
-                // 获取输出目录
-                File dest = outputProvider.getContentLocation(name,
-                        directoryInput.getContentTypes(), directoryInput.getScopes(), Format.DIRECTORY);
-//                PluginHelper.println(group, "dir output dest: "+ dest.getAbsolutePath());
-                // 将input的目录复制到output指定目录
-                FileUtils.copyDirectory(src, dest);
+                InjectHelper.transformSourceCode(group, directoryInput, injectsMap, outputProvider);
             }
         }
         PluginHelper.println(group, "Transform Finish");

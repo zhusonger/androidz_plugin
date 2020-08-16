@@ -73,6 +73,11 @@ public class InjectPlugin implements Plugin<Project> {
         extensions.add(EXTENSION_NAME, injectExtensions);
     }
 
+    /**
+     * 返回注入列表
+     * @param project
+     * @return
+     */
     public static List<InjectExtension> getAllInjects(Project project) {
         List<InjectExtension> list = new ArrayList<>();
 
