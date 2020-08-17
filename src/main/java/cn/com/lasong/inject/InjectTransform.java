@@ -2,7 +2,6 @@ package cn.com.lasong.inject;
 
 import com.android.build.api.transform.Context;
 import com.android.build.api.transform.DirectoryInput;
-import com.android.build.api.transform.Format;
 import com.android.build.api.transform.JarInput;
 import com.android.build.api.transform.QualifiedContent;
 import com.android.build.api.transform.Transform;
@@ -12,10 +11,8 @@ import com.android.build.api.transform.TransformInvocation;
 import com.android.build.api.transform.TransformOutputProvider;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 
-import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -76,10 +73,17 @@ public class InjectTransform extends Transform {
     @Override
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
-        List<InjectExtension> allInjects = InjectPlugin.getAllInjects(project);
-        Map<String, InjectExtension> injectsMap = new HashMap<>();
-        for (InjectExtension item : allInjects) {
-            injectsMap.put(item.getGroup(), item);
+
+//        ExtensionContainer extensions = project.getExtensions();
+//        InjectExtension extension = extensions.findByType(InjectExtension.class);
+//        if (null != extension) {
+//            NamedDomainObjectContainer<InjectDomain> injectDomains = extension.injectDomains;
+//        }
+
+        List<InjectDomain> allInjects = InjectPlugin.getAllInjects(project);
+        Map<String, InjectDomain> injectsMap = new HashMap<>();
+        for (InjectDomain item : allInjects) {
+            injectsMap.put(item.group, item);
         }
 
         PluginHelper.println(group, "Transform Start");

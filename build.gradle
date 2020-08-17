@@ -8,10 +8,8 @@ dependencies {
     //从2.0.0版本开始就是在gradle-api中了
     implementation 'com.android.tools.build:gradle:3.5.3'
 
-    // ASM 相关
-    implementation 'org.ow2.asm:asm:8.0.1'
-    implementation 'org.ow2.asm:asm-util:8.0.1'
-    implementation 'org.ow2.asm:asm-commons:8.0.1'
+    // javassist 相关修改字节码
+    implementation 'org.javassist:javassist:3.27.0-GA'
 
     implementation 'commons-beanutils:commons-beanutils:1.9.4'
 }

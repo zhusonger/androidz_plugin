@@ -1,7 +1,6 @@
 package cn.com.lasong.inject;
 
-import org.gradle.api.provider.Property;
-import org.gradle.api.tasks.Input;
+import org.gradle.api.Action;
 
 /**
  * Author: zhusong
@@ -18,28 +17,14 @@ public class InjectMethod {
     // 方法参数签名
     public String signature;
 
-    public String getClassName() {
-        return className;
+    public void className(Action<String> action) {
+        action.execute(className);
     }
-
-    public void setClassName(String className) {
-        this.className = className;
+    public void methodName(Action<String> action) {
+        action.execute(methodName);
     }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
-    }
-
-    public String getSignature() {
-        return signature;
-    }
-
-    public void setSignature(String signature) {
-        this.signature = signature;
+    public void signature(Action<String> action) {
+        action.execute(signature);
     }
 
     @Override

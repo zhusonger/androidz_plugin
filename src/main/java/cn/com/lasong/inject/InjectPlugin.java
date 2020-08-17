@@ -1,17 +1,12 @@
 package cn.com.lasong.inject;
 
 
-import com.android.annotations.NonNull;
 import com.android.build.gradle.BaseExtension;
 
-import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
-import org.gradle.api.NamedDomainObjectFactory;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.plugins.ExtensionContainer;
-import org.gradle.internal.reflect.Instantiator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -58,7 +53,6 @@ public class InjectPlugin implements Plugin<Project> {
         //注册task任务
         android.registerTransform(new InjectTransform(project, PluginHelper.isApplication(project),
                 name));
-        Instantiator instantiator;
         PluginHelper.println(name, "InjectPlugin Finish");
     }
 
@@ -69,8 +63,8 @@ public class InjectPlugin implements Plugin<Project> {
     private void setupExtension(Project project) {
         ExtensionContainer extensions = project.getExtensions();
 
-        NamedDomainObjectContainer<InjectExtension> injectExtensions = project.container(InjectExtension.class);
-        extensions.add(EXTENSION_NAME, injectExtensions);
+        // 调用构造方法, 第一个是project
+        extensions.create(EXTENSION_NAME, InjectExtension.class, project);
     }
 
     /**
@@ -78,14 +72,24 @@ public class InjectPlugin implements Plugin<Project> {
      * @param project
      * @return
      */
-    public static List<InjectExtension> getAllInjects(Project project) {
-        List<InjectExtension> list = new ArrayList<>();
+    public static List<InjectDomain> getAllInjects(Project project) {
+        List<InjectDomain> list = new ArrayList<>();
 
         ExtensionContainer extensions = project.getExtensions();
-        Object extensionObj = extensions.findByName(EXTENSION_NAME);
-        NamedDomainObjectContainer<InjectExtension> allInjects = (NamedDomainObjectContainer<InjectExtension>) extensionObj;
-        if (null != allInjects) {
-            list.addAll(allInjects);
+        InjectExtension extension = extensions.findByType(InjectExtension.class);
+
+        if (null != extension) {
+            System.out.println("LOG===>" + extension);
+            System.out.println("LOG===>" + extension.injectDebug);
+            System.out.println("LOG===>" + extension.injectDomains);
+            NamedDomainObjectContainer<InjectDomain> injectDomains = extension.injectDomains;
+            if (null != injectDomains) {
+                Iterator<InjectDomain> iterator = injectDomains.iterator();
+                while (iterator.hasNext()) {
+                    InjectDomain domain = iterator.next();
+                    System.out.println("LOG===>" + domain);
+                }
+            }
         }
         return list;
     }

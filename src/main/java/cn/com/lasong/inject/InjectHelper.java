@@ -9,11 +9,9 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
+import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
 
@@ -28,25 +26,39 @@ public class InjectHelper {
      * @param outputProvider
      * @throws IOException
      */
-    public static void transformJar(String group, JarInput jarInput, Map<String, InjectExtension> allInjects, TransformOutputProvider outputProvider) throws IOException {
+    public static void transformJar(String group, JarInput jarInput, Map<String, InjectDomain> allInjects, TransformOutputProvider outputProvider) throws IOException {
         //对jar文件进行处理
         File src = jarInput.getFile();
         String name = jarInput.getName();
-
-        InjectExtension isNeedInject =  ? allInjects :;
-        if (isNeedInject) {
-
-            PluginHelper.println(group, "jar = " + name + ", " + src.getAbsolutePath());
-            JarFile jarFile = new JarFile(src);
-            jarFile.getJarEntry("")
-            Enumeration<JarEntry> entries = jarFile.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                String entryName = entry.getName();
-                System.out.println("entryName: " + entryName+":"+entry.isDirectory());
+        boolean isNeedInject = false;
+        Set<Map.Entry<String, InjectDomain>> set = allInjects.entrySet();
+        Iterator<Map.Entry<String, InjectDomain>> iterator = set.iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, InjectDomain> entry = iterator.next();
+            // 需要注入的jarInput
+            if (name.contains(entry.getKey())) {
+                isNeedInject = true;
+                break;
             }
-            jarFile.close();
         }
+        if (isNeedInject) {
+            PluginHelper.println(group, "jar: " + name+"," + src.getAbsolutePath());
+        }
+        // name
+//        InjectExtension isNeedInject =  ? allInjects :;
+//        if (isNeedInject) {
+//
+//            PluginHelper.println(group, "jar = " + name + ", " + src.getAbsolutePath());
+//            JarFile jarFile = new JarFile(src);
+//            jarFile.getJarEntry("")
+//            Enumeration<JarEntry> entries = jarFile.entries();
+//            while (entries.hasMoreElements()) {
+//                JarEntry entry = entries.nextElement();
+//                String entryName = entry.getName();
+//                System.out.println("entryName: " + entryName+":"+entry.isDirectory());
+//            }
+//            jarFile.close();
+//        }
 
         File dest = outputProvider.getContentLocation(jarInput.getName(), jarInput.getContentTypes(),
                 jarInput.getScopes(), Format.JAR);
@@ -66,7 +78,7 @@ public class InjectHelper {
      * @param outputProvider
      * @throws IOException
      */
-    public static void transformSourceCode(String group, DirectoryInput directoryInput, Map<String, InjectExtension> allInjects, TransformOutputProvider outputProvider) throws IOException {
+    public static void transformSourceCode(String group, DirectoryInput directoryInput, Map<String, InjectDomain> allInjects, TransformOutputProvider outputProvider) throws IOException {
         File src = directoryInput.getFile();
         String name = directoryInput.getName();
 
