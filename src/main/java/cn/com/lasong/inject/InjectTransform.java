@@ -14,6 +14,7 @@ import com.android.build.gradle.internal.pipeline.TransformManager;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ExtensionContainer;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -76,6 +77,8 @@ public class InjectTransform extends Transform {
         InjectExtension extension = extensions.findByType(InjectExtension.class);
 
         Context context = transformInvocation.getContext();
+        File proDir = project.getProjectDir();
+        PluginHelper.println(group, "proDir:" + proDir);
         // 获取输入（消费型输入，需要传递给下一个Transform）
         Collection<TransformInput> inputs = transformInvocation.getInputs();
         TransformOutputProvider outputProvider = transformInvocation.getOutputProvider();

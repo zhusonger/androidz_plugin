@@ -23,7 +23,6 @@ import java.util.jar.JarOutputStream;
 
 import cn.com.lasong.utils.PluginHelper;
 import javassist.ClassPool;
-import javassist.CtClass;
 
 public class InjectHelper {
 
@@ -64,26 +63,29 @@ public class InjectHelper {
                 JarFile srcJar = new JarFile(srcFile);
                 JarOutputStream srcJarOutput = new JarOutputStream(new FileOutputStream(srcTmpFile));
 
-                List<InjectClzModify> injects = injectDomain.clzModify;
-                Map<String, InjectClzModify> injectMap = new HashMap<>();
-                CtClass cc = pool.makeClass("com.rickiyang.learn.javassist.Person");
+                // 1. create class
+                List<InjectClzNew> clzNew = injectDomain.clzNew;
 
-                for (InjectClzModify method :injects) {
-                    String pkgPath = method.getPkgPath();
+                // 2. modify class
+                List<InjectClzModify> clzModify = injectDomain.clzModify;
+                Map<String, InjectClzModify> clzModifyMap = new HashMap<>();
+                for (InjectClzModify modify :clzModify) {
+                    String pkgPath = modify.getPkgPath();
                     if (null == pkgPath) {
                         continue;
                     }
-                    injectMap.put(pkgPath, method);
+                    clzModifyMap.put(pkgPath, modify);
                 }
                 // 遍历原jar文件寻找class文件
                 Enumeration<JarEntry> entries = srcJar.entries();
                 while (entries.hasMoreElements()) {
                     JarEntry entry = entries.nextElement();
                     InputStream stream = srcJar.getInputStream(entry);
+                    // cn/com/lasong/base/AppManager$Holder.class
+                    // cn/com/lasong/base/AppManager.class
                     String entryName = entry.getName();
                     // 需要注入的类
-                    if (injectMap.containsKey(entryName)) {
-
+                    if (clzModifyMap.containsKey(entryName)) {
                         PluginHelper.println(group, "entryName: " + entryName);
                     }
 //                    if (entryName.endsWith())
