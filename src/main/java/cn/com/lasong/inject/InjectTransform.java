@@ -11,6 +11,7 @@ import com.android.build.api.transform.TransformInvocation;
 import com.android.build.api.transform.TransformOutputProvider;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 
+import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ExtensionContainer;
 
@@ -84,6 +85,8 @@ public class InjectTransform extends Transform {
         boolean isIncremental = transformInvocation.isIncremental();
         // 非增量就删除之前的
         if (!isIncremental) {
+            File tmpDir = context.getTemporaryDir();
+            FileUtils.cleanDirectory(tmpDir);
             outputProvider.deleteAll();
         }
 

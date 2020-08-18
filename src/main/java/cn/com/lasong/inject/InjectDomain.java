@@ -27,10 +27,6 @@ public class InjectDomain {
     // 3.项目源码使用[:项目名称:子项目名称1:子项目名称2],
     //  3.1.如应用模块叫app, 就使用:app
     //  3.2.app模块下的子模块sub, 就使用 :app:sub
-
-    // android.local.jars:agora-rtc-sdk.jar:d6d6fbc1426a002d1e92ffd161e4257c12816d32
-    // android.local.jars:SenseArSourceManager-release-runtime.jar:12a9d3c4f421868d738d34abf42bbe7e83e4ff1c
-    // cn.com.lasong:base:0.0.2
     public String group;
 
     // 新增字节文件目录

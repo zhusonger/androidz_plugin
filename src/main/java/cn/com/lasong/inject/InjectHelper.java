@@ -42,9 +42,17 @@ public class InjectHelper {
      */
     public static void transformJar(String group, JarInput input, InjectExtension extension, TransformOutputProvider outputProvider, Context context, File proDir) throws IOException {
         //对jar文件进行处理
+        // android.local.jars:agora-rtc-sdk.jar:d6d6fbc1426a002d1e92ffd161e4257c12816d32
+        // android.local.jars:SenseArSourceManager-release-runtime.jar:12a9d3c4f421868d738d34abf42bbe7e83e4ff1c
+        // cn.com.lasong:base:0.0.2
         String name = input.getName();
+        String[] nameArr = name.split(":");
+        String artifact = nameArr[1];
+        boolean isLocalJar = artifact.endsWith(".jar");
+
         // build/tmp/xxx(任务名)
         File tmpDir = context.getTemporaryDir();
+        FileUtils.cleanDirectory(tmpDir);
         File dstFile = outputProvider.getContentLocation(input.getName(), input.getContentTypes(),
                 input.getScopes(), Format.JAR);
 
@@ -54,8 +62,14 @@ public class InjectHelper {
             Set<InjectDomain> set = extension.injectDomains;
             InjectDomain injectDomain = null;
             for (InjectDomain domain : set) {
+                if (domain.group == null || domain.group.isEmpty()) {
+                    continue;
+                }
                 // 需要注入的jarInput
-                if (name.contains(domain.group)) {
+                // 1. 非本地库 group完全匹配
+                // 2. 本地库 group跟
+                if ((!isLocalJar && name.equals(domain.group))
+                        || (isLocalJar && name.contains(domain.group))) {
                     injectDomain = domain;
                     break;
                 }
@@ -65,11 +79,12 @@ public class InjectHelper {
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "Inject Begin : "
-                            + "name = " + name + ","
-                            + "srcFile = " + srcFile.getAbsolutePath() + ","
-                            + "dstFile = " + dstFile.getAbsolutePath() + ","
-                            + "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "========> Inject Begin ["+group+"] <========");
+                    PluginHelper.println(group, "name = " + name);
+                    PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
+                    PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
+                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "");
                 }
 
                 JarFile srcJar = new JarFile(srcFile);
@@ -87,42 +102,105 @@ public class InjectHelper {
                 srcFile = srcTmpFile;
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "Inject End : "
-                            + "name = " + name + ","
-                            + "srcFile = " + srcFile.getAbsolutePath() + ","
-                            + "dstFile = " + dstFile.getAbsolutePath() + ","
-                            + "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "");
+                    PluginHelper.println(group, "name = " + name);
+                    PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
+                    PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
+                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "========> Inject End  ["+group+"] <========");
+                    PluginHelper.println(group, "");
                 }
             }
         }
 
         // 写入到目标文件
         FileUtils.copyFile(srcFile, dstFile);
-
     }
 
     /**
      * 处理自己项目的源码
      *
      * @param group
-     * @param directoryInput
-     * @param allInjects
+     * @param input
+     * @param extension
      * @param outputProvider
      * @param context
      * @param proDir
      * @throws IOException
      */
-    public static void transformSourceCode(String group, DirectoryInput directoryInput, InjectExtension allInjects, TransformOutputProvider outputProvider, Context context, File proDir) throws IOException {
-        File src = directoryInput.getFile();
-        String name = directoryInput.getName();
+    public static void transformSourceCode(String group, DirectoryInput input, InjectExtension extension, TransformOutputProvider outputProvider, Context context, File proDir) throws IOException {
 
-//        PluginHelper.println(group, "dir: " + name + ":" + src.getAbsolutePath());
-        // 获取输出目录
-        File dest = outputProvider.getContentLocation(name,
-                directoryInput.getContentTypes(), directoryInput.getScopes(), Format.DIRECTORY);
-//        PluginHelper.println(group, "dir output dest: " + dest.getAbsolutePath());
-        // 将input的目录复制到output指定目录
-        FileUtils.copyDirectory(src, dest);
+        //对源码文件进行处理
+        String name = input.getName();
+        // build/tmp/xxx(任务名)
+        File tmpDir = context.getTemporaryDir();
+        File dstFile = outputProvider.getContentLocation(input.getName(), input.getContentTypes(),
+                input.getScopes(), Format.DIRECTORY);
+
+        File srcFile = input.getFile();
+
+        if (null != extension) {
+            Set<InjectDomain> set = extension.injectDomains;
+            InjectDomain injectDomain = null;
+            for (InjectDomain domain : set) {
+                if (domain.group == null || domain.group.isEmpty()) {
+                    continue;
+                }
+                // 当前库与注入目标库相同
+                if (domain.group.equals(group)) {
+                    injectDomain = domain;
+                    break;
+                }
+            }
+
+            if (null != injectDomain) {
+                File srcTmpFile = new File(tmpDir, srcFile.getName());
+
+                if (extension.injectDebug) {
+                    PluginHelper.println(group, "========> Inject Begin ["+group+"] <========");
+                    PluginHelper.println(group,  "group = " + group);
+                    PluginHelper.println(group,  "srcFile = " + srcFile.getAbsolutePath());
+                    PluginHelper.println(group,  "dstFile = " + dstFile.getAbsolutePath());
+                    PluginHelper.println(group,  "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "");
+                }
+
+                // 1. create class
+                String clzNewDir = injectDomain.clzNewDir;
+                if (null != clzNewDir && !clzNewDir.isEmpty()) {
+                    File clzDir = new File(proDir, clzNewDir);
+                    FileUtils.copyDirectory(clzDir, srcFile);
+//                    writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
+                }
+
+//                JarFile srcJar = new JarFile(srcFile);
+//                JarOutputStream srcJarOutput = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(srcTmpFile)));
+//                // 1. create class
+//                String clzNewDir = injectDomain.clzNewDir;
+//                if (null != clzNewDir && !clzNewDir.isEmpty()) {
+//                    File clzDir = new File(proDir, clzNewDir);
+//                    writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
+//                }
+//
+//                srcJarOutput.close();
+//                srcJar.close();
+//                // 成功之后更新复制的源jar包
+//                srcFile = srcTmpFile;
+
+                if (extension.injectDebug) {
+                    PluginHelper.println(group, "");
+                    PluginHelper.println(group,  "group = " + group);
+                    PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
+                    PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
+                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "========> Inject End ["+group+"] <========");
+                    PluginHelper.println(group, "");
+                }
+            }
+        }
+
+        // 写入到目标文件
+        FileUtils.copyDirectory(srcFile, dstFile);
     }
 
 
