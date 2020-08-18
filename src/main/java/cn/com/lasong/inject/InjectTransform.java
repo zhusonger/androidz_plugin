@@ -78,7 +78,6 @@ public class InjectTransform extends Transform {
 
         Context context = transformInvocation.getContext();
         File proDir = project.getProjectDir();
-        PluginHelper.println(group, "proDir:" + proDir);
         // 获取输入（消费型输入，需要传递给下一个Transform）
         Collection<TransformInput> inputs = transformInvocation.getInputs();
         TransformOutputProvider outputProvider = transformInvocation.getOutputProvider();
@@ -97,11 +96,11 @@ public class InjectTransform extends Transform {
             // 遍历输入，分别遍历其中的jar以及directory
             for (JarInput jarInput : input.getJarInputs()) {
                 //对jar文件进行处理
-                InjectHelper.transformJar(group, jarInput, extension, outputProvider, context);
+                InjectHelper.transformJar(group, jarInput, extension, outputProvider, context, proDir);
             }
             for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
                 // 对directory进行处理
-                InjectHelper.transformSourceCode(group, directoryInput, extension, outputProvider, context);
+                InjectHelper.transformSourceCode(group, directoryInput, extension, outputProvider, context, proDir);
             }
         }
     }

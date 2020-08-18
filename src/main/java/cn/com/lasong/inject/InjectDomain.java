@@ -33,11 +33,11 @@ public class InjectDomain {
     // cn.com.lasong:base:0.0.2
     public String group;
 
-    // 需要注入的项
-    public List<InjectClzModify> clzModify = new ArrayList<>();
+    // 新增字节文件目录
+    public String clzNewDir;
 
-    // 需要注入的项
-    public List<InjectClzNew> clzNew = new ArrayList<>();
+    // 修改字节文件列表
+    public List<InjectClzModify> clzModify = new ArrayList<>();
 
     public void group(Action<String> action) {
         action.execute(group);
@@ -47,8 +47,8 @@ public class InjectDomain {
         action.execute(clzModify);
     }
 
-    public void clzNew(Action<List<InjectClzNew>> action) {
-        action.execute(clzNew);
+    public void clzNewDir(Action<String> action) {
+        action.execute(clzNewDir);
     }
 
     public void group(String group) {
@@ -67,12 +67,12 @@ public class InjectDomain {
         this.clzModify = Arrays.asList(clzModify);
     }
 
-    public List<InjectClzNew> getClzNew() {
-        return clzNew;
+    public String getClzNewDir() {
+        return clzNewDir;
     }
 
-    public void setClzNew(InjectClzNew[] clzNew) {
-        this.clzNew = Arrays.asList(clzNew);
+    public void clzNewDir(String clzNewDir) {
+        this.clzNewDir = clzNewDir;
     }
 
     @Override
@@ -84,8 +84,8 @@ public class InjectDomain {
                 .append(group).append('\"');
         sb.append(",\"clzModify\":")
                 .append(clzModify);
-        sb.append(",\"clzNew\":")
-                .append(clzNew);
+        sb.append(",\"clzNewDir\":")
+                .append(clzNewDir);
         sb.append('}');
         return sb.toString();
     }

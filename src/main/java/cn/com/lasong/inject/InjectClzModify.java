@@ -70,7 +70,7 @@ public class InjectClzModify {
         isInject = inject;
     }
 
-    public String getPkgPath() {
+    public String getEntryName() {
         if (null != className) {
             return className.replace(".", File.separator) +".class";
         }
