@@ -3,6 +3,7 @@ package cn.com.lasong.inject;
 import org.gradle.api.Action;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -50,6 +51,14 @@ public class InjectDomain {
 
     public String getGroup() {
         return group;
+    }
+
+    public List<InjectMethod> getInjects() {
+        return injects;
+    }
+
+    public void setInjects(InjectMethod[] injects) {
+        this.injects = Arrays.asList(injects);
     }
 
     /**
