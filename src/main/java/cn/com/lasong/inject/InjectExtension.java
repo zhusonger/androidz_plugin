@@ -4,6 +4,8 @@ import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 
+import java.util.Arrays;
+
 /**
  * Author: zhusong
  * Email: song.zhu@lasong.com.cn
@@ -14,8 +16,9 @@ import org.gradle.api.Project;
 public class InjectExtension {
 
     //定义一个 NamedDomainObjectContainer 属性
+    // 定义需要注入的各个节点
     public NamedDomainObjectContainer<InjectDomain> injectDomains;
-
+    // 是否debug模式
     public boolean injectDebug;
 
     public InjectExtension(Project project) {
@@ -33,5 +36,16 @@ public class InjectExtension {
 
     public boolean getInjectDebug() {
         return injectDebug;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("{");
+        sb.append("\"injectDomains\":")
+                .append(Arrays.deepToString(injectDomains.toArray()));
+        sb.append(",\"injectDebug\":")
+                .append(injectDebug);
+        sb.append('}');
+        return sb.toString();
     }
 }

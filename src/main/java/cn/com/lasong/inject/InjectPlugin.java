@@ -3,15 +3,10 @@ package cn.com.lasong.inject;
 
 import com.android.build.gradle.BaseExtension;
 
-import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import cn.com.lasong.utils.PluginHelper;
 
@@ -65,32 +60,5 @@ public class InjectPlugin implements Plugin<Project> {
 
         // 调用构造方法, 第一个是project
         extensions.create(EXTENSION_NAME, InjectExtension.class, project);
-    }
-
-    /**
-     * 返回注入列表
-     * @param project
-     * @return
-     */
-    public static List<InjectDomain> getAllInjects(Project project) {
-        List<InjectDomain> list = new ArrayList<>();
-
-        ExtensionContainer extensions = project.getExtensions();
-        InjectExtension extension = extensions.findByType(InjectExtension.class);
-
-        if (null != extension) {
-            System.out.println("LOG===>" + extension);
-            System.out.println("LOG===>" + extension.injectDebug);
-            System.out.println("LOG===>" + extension.injectDomains);
-            NamedDomainObjectContainer<InjectDomain> injectDomains = extension.injectDomains;
-            if (null != injectDomains) {
-                Iterator<InjectDomain> iterator = injectDomains.iterator();
-                while (iterator.hasNext()) {
-                    InjectDomain domain = iterator.next();
-                    System.out.println("LOG===>" + domain);
-                }
-            }
-        }
-        return list;
     }
 }

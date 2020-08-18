@@ -12,13 +12,11 @@ import com.android.build.api.transform.TransformOutputProvider;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 
 import org.gradle.api.Project;
+import org.gradle.api.plugins.ExtensionContainer;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
@@ -74,19 +72,8 @@ public class InjectTransform extends Transform {
     public void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation);
 
-//        ExtensionContainer extensions = project.getExtensions();
-//        InjectExtension extension = extensions.findByType(InjectExtension.class);
-//        if (null != extension) {
-//            NamedDomainObjectContainer<InjectDomain> injectDomains = extension.injectDomains;
-//        }
-
-        List<InjectDomain> allInjects = InjectPlugin.getAllInjects(project);
-        Map<String, InjectDomain> injectsMap = new HashMap<>();
-        for (InjectDomain item : allInjects) {
-            injectsMap.put(item.group, item);
-        }
-
-        PluginHelper.println(group, "Transform Start");
+        ExtensionContainer extensions = project.getExtensions();
+        InjectExtension extension = extensions.findByType(InjectExtension.class);
 
         Context context = transformInvocation.getContext();
         // 获取输入（消费型输入，需要传递给下一个Transform）
@@ -95,21 +82,24 @@ public class InjectTransform extends Transform {
         boolean isIncremental = transformInvocation.isIncremental();
         // 非增量就删除之前的
         if (!isIncremental) {
-            PluginHelper.println(group, "Not isIncremental, Delete All");
             outputProvider.deleteAll();
+        }
+
+        if (null != extension && extension.injectDebug) {
+            PluginHelper.println(group, "transformWithInjectClass");
+            PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
         }
 
         for (TransformInput input : inputs) {
             // 遍历输入，分别遍历其中的jar以及directory
             for (JarInput jarInput : input.getJarInputs()) {
                 //对jar文件进行处理
-                InjectHelper.transformJar(group, jarInput, injectsMap, outputProvider);
+                InjectHelper.transformJar(group, jarInput, extension, outputProvider, context);
             }
             for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
                 // 对directory进行处理
-                InjectHelper.transformSourceCode(group, directoryInput, injectsMap, outputProvider);
+                InjectHelper.transformSourceCode(group, directoryInput, extension, outputProvider, context);
             }
         }
-        PluginHelper.println(group, "Transform Finish");
     }
 }

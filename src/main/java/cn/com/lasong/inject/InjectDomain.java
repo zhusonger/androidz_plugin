@@ -34,15 +34,21 @@ public class InjectDomain {
     public String group;
 
     // 需要注入的项
-//    private List<Map<String, String>> injects;
-    public List<InjectMethod> injects = new ArrayList<>();
+    public List<InjectClzModify> clzModify = new ArrayList<>();
+
+    // 需要注入的项
+    public List<InjectClzNew> clzNew = new ArrayList<>();
 
     public void group(Action<String> action) {
         action.execute(group);
     }
 
-    public void injects(Action<List<InjectMethod>> action) {
-        action.execute(injects);
+    public void clzModify(Action<List<InjectClzModify>> action) {
+        action.execute(clzModify);
+    }
+
+    public void clzNew(Action<List<InjectClzNew>> action) {
+        action.execute(clzNew);
     }
 
     public void group(String group) {
@@ -53,25 +59,34 @@ public class InjectDomain {
         return group;
     }
 
-    public List<InjectMethod> getInjects() {
-        return injects;
+    public List<InjectClzModify> getClzModify() {
+        return clzModify;
     }
 
-    public void setInjects(InjectMethod[] injects) {
-        this.injects = Arrays.asList(injects);
+    public void setClzModify(InjectClzModify[] clzModify) {
+        this.clzModify = Arrays.asList(clzModify);
     }
 
-    /**
-     * 获取封装好的注入方法
-     *
-     * @return
-     */
+    public List<InjectClzNew> getClzNew() {
+        return clzNew;
+    }
+
+    public void setClzNew(InjectClzNew[] clzNew) {
+        this.clzNew = Arrays.asList(clzNew);
+    }
+
     @Override
     public String toString() {
-        return "InjectDomain{" +
-                "name='" + name + '\'' +
-                ", group='" + group + '\'' +
-                ", injects=" + injects +
-                '}';
+        final StringBuilder sb = new StringBuilder("{");
+        sb.append("\"name\":\"")
+                .append(name).append('\"');
+        sb.append(",\"group\":\"")
+                .append(group).append('\"');
+        sb.append(",\"clzModify\":")
+                .append(clzModify);
+        sb.append(",\"clzNew\":")
+                .append(clzNew);
+        sb.append('}');
+        return sb.toString();
     }
 }
