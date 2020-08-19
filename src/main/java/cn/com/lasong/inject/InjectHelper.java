@@ -14,22 +14,41 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
 
 import cn.com.lasong.utils.PluginHelper;
+import javassist.ClassPath;
 import javassist.ClassPool;
+import javassist.NotFoundException;
 
 public class InjectHelper {
 
     //初始化类池
-    private final static ClassPool pool = ClassPool.getDefault();
+    protected final static ClassPool pool = ClassPool.getDefault();
+    // 加入类路径的记录, 方便修改
+    protected final static Map<String, ClassPath> classpath = new HashMap<>();
 
+    /**
+     * 添加javassist类搜索路径
+     * @param path
+     * @return
+     */
+    public static boolean appendClassPath(String path) {
+        //project.android.bootClasspath 加入android.jar，不然找不到android相关的所有类
+        try {
+            ClassPath classPath = pool.appendClassPath(path);
+            return true;
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     /**
      * 处理三方的库
      *
@@ -49,7 +68,7 @@ public class InjectHelper {
         String[] nameArr = name.split(":");
         String artifact = nameArr[1];
         boolean isLocalJar = artifact.endsWith(".jar");
-
+        String tag = isLocalJar ? artifact : name;
         // build/tmp/xxx(任务名)
         File tmpDir = context.getTemporaryDir();
         FileUtils.cleanDirectory(tmpDir);
@@ -57,6 +76,8 @@ public class InjectHelper {
                 input.getScopes(), Format.JAR);
 
         File srcFile = input.getFile();
+
+        PluginHelper.printlnErr(group, "transformJar name = "+name+", srcFile = " + srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -76,10 +97,17 @@ public class InjectHelper {
             }
 
             if (null != injectDomain) {
+
+//                try {
+//                    pool.appendClassPath(srcFile.getAbsolutePath());
+//                } catch (NotFoundException e) {
+//                    e.printStackTrace();
+//                }
+
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "========> Inject Begin ["+group+"] <========");
+                    PluginHelper.println(group, "========> Inject Begin ["+tag+"] <========");
                     PluginHelper.println(group, "name = " + name);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
@@ -107,7 +135,7 @@ public class InjectHelper {
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
                     PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End  ["+group+"] <========");
+                    PluginHelper.println(group, "========> Inject End  ["+tag+"] <========");
                     PluginHelper.println(group, "");
                 }
             }
@@ -138,6 +166,8 @@ public class InjectHelper {
                 input.getScopes(), Format.DIRECTORY);
 
         File srcFile = input.getFile();
+
+        PluginHelper.printlnErr(group, "transformSourceCode name = "+name+", srcFile = " + srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -170,22 +200,7 @@ public class InjectHelper {
                 if (null != clzNewDir && !clzNewDir.isEmpty()) {
                     File clzDir = new File(proDir, clzNewDir);
                     FileUtils.copyDirectory(clzDir, srcFile);
-//                    writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
                 }
-
-//                JarFile srcJar = new JarFile(srcFile);
-//                JarOutputStream srcJarOutput = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(srcTmpFile)));
-//                // 1. create class
-//                String clzNewDir = injectDomain.clzNewDir;
-//                if (null != clzNewDir && !clzNewDir.isEmpty()) {
-//                    File clzDir = new File(proDir, clzNewDir);
-//                    writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
-//                }
-//
-//                srcJarOutput.close();
-//                srcJar.close();
-//                // 成功之后更新复制的源jar包
-//                srcFile = srcTmpFile;
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "");

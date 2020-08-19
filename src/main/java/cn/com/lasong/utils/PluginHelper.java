@@ -53,6 +53,11 @@ public class PluginHelper {
         System.out.println(out);
     }
 
+    public static void printlnErr(String tag, String message) {
+        String out = String.format(Locale.CHINA, "> [%s] %s", tag, message);
+        System.err.println(out);
+    }
+
     /**
      * 格式化打印
      * @param message

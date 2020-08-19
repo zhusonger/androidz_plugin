@@ -12,13 +12,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
 
@@ -85,9 +82,12 @@ public class TaskTimePlugin implements Plugin<Project> {
                 Collection<TaskTime> values = timeMap.values();
                 List<TaskTime> list = new LinkedList<>(values);
                 Collections.sort(list, (taskL, taskR) -> (int) -(taskL.costMs - taskR.costMs));
+                long costMs = 0;
                 for (TaskTime taskTime : list) {
                     PluginHelper.println(name, taskTime.name+" ["+taskTime.costMs+"ms]");
+                    costMs += taskTime.costMs;
                 }
+                PluginHelper.println(name, "Total Time : "+(costMs/1000)+"s");
                 PluginHelper.println(name, "============================");
             }
         });

@@ -9,6 +9,7 @@ import com.android.build.api.transform.TransformException;
 import com.android.build.api.transform.TransformInput;
 import com.android.build.api.transform.TransformInvocation;
 import com.android.build.api.transform.TransformOutputProvider;
+import com.android.build.gradle.BaseExtension;
 import com.android.build.gradle.internal.pipeline.TransformManager;
 
 import org.apache.commons.io.FileUtils;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
@@ -90,6 +92,17 @@ public class InjectTransform extends Transform {
             outputProvider.deleteAll();
         }
 
+        // 添加android.jar
+        BaseExtension android = extensions.findByType(BaseExtension.class);
+        if (null != android && null != extension) {
+            List<File> bootClasspath = android.getBootClasspath();
+            PluginHelper.printlnErr(group, "source 1:" + InjectHelper.pool.toString() +", "+ InjectHelper.pool.hashCode());
+            InjectHelper.appendClassPath(bootClasspath.get(0).getAbsolutePath());
+            PluginHelper.printlnErr(group, InjectHelper.pool + ", bootClasspath:" + bootClasspath.get(0).getAbsolutePath());
+            PluginHelper.printlnErr(group, "source 2:" + InjectHelper.pool.toString());
+
+//            InjectHelper.appendClassPath(bootClasspath.get(0).getAbsolutePath());
+        }
         if (null != extension && extension.injectDebug) {
             PluginHelper.println(group, "transformWithInjectClass");
             PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
