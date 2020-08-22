@@ -14,7 +14,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -32,23 +35,26 @@ public class InjectHelper {
     //初始化类池
     protected final static ClassPool pool = ClassPool.getDefault();
     // 加入类路径的记录, 方便修改
-    protected final static Map<String, ClassPath> classpath = new HashMap<>();
+    protected final static Map<String, ClassPath> clzPaths = new HashMap<>();
 
     /**
      * 添加javassist类搜索路径
+     *
      * @param path
      * @return
      */
-    public static boolean appendClassPath(String path) {
+    public static boolean appendClassPath(String tag, String path) {
         //project.android.bootClasspath 加入android.jar，不然找不到android相关的所有类
         try {
             ClassPath classPath = pool.appendClassPath(path);
+            clzPaths.put(tag, classPath);
             return true;
         } catch (NotFoundException e) {
             e.printStackTrace();
         }
         return false;
     }
+
     /**
      * 处理三方的库
      *
@@ -71,13 +77,16 @@ public class InjectHelper {
         String tag = isLocalJar ? artifact : name;
         // build/tmp/xxx(任务名)
         File tmpDir = context.getTemporaryDir();
-        FileUtils.cleanDirectory(tmpDir);
+
         File dstFile = outputProvider.getContentLocation(input.getName(), input.getContentTypes(),
                 input.getScopes(), Format.JAR);
 
         File srcFile = input.getFile();
 
-        PluginHelper.printlnErr(group, "transformJar name = "+name+", srcFile = " + srcFile.getAbsolutePath());
+        PluginHelper.printlnErr(group, "transformJar name = " + name + ", srcFile = " + srcFile.getAbsolutePath());
+
+        // 添加jar包路径
+        appendClassPath(tag, srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -96,18 +105,13 @@ public class InjectHelper {
                 }
             }
 
+            // 注入
             if (null != injectDomain) {
-
-//                try {
-//                    pool.appendClassPath(srcFile.getAbsolutePath());
-//                } catch (NotFoundException e) {
-//                    e.printStackTrace();
-//                }
 
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "========> Inject Begin ["+tag+"] <========");
+                    PluginHelper.println(group, "========> Inject Begin [" + tag + "] <========");
                     PluginHelper.println(group, "name = " + name);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
@@ -124,6 +128,30 @@ public class InjectHelper {
                     writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
                 }
 
+                // 2. modify class
+                List<InjectClzModify> clzModify = injectDomain.clzModify;
+                if (null != clzModify && !clzModify.isEmpty()) {
+//                    JarEntry destEntry = new JarEntry(entryName);
+//                    srcJarOutput.putNextEntry(destEntry);
+//                    byte[] srcBytes = IOUtils.toByteArray(new FileInputStream(clzFile));
+//                    srcJarOutput.write(srcBytes);
+//                    srcJarOutput.closeEntry();
+                }
+
+                Enumeration<JarEntry> entries = srcJar.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry destEntry = entries.nextElement();
+                    srcJarOutput.putNextEntry(destEntry);
+                    InputStream stream = srcJar.getInputStream(destEntry);
+                    byte[] srcBytes = new byte[stream.available()];
+                    int len;
+                    while ((len = stream.read(srcBytes)) > 0) {
+                        srcJarOutput.write(srcBytes, 0, len);
+                    }
+                    srcJarOutput.closeEntry();
+                }
+
+
                 srcJarOutput.close();
                 srcJar.close();
                 // 成功之后更新复制的源jar包
@@ -135,10 +163,11 @@ public class InjectHelper {
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
                     PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End  ["+tag+"] <========");
+                    PluginHelper.println(group, "========> Inject End  [" + tag + "] <========");
                     PluginHelper.println(group, "");
                 }
             }
+            // 否则没有需要注入的, 就直接复制, 不进行修改
         }
 
         // 写入到目标文件
@@ -167,7 +196,7 @@ public class InjectHelper {
 
         File srcFile = input.getFile();
 
-        PluginHelper.printlnErr(group, "transformSourceCode name = "+name+", srcFile = " + srcFile.getAbsolutePath());
+        PluginHelper.printlnErr(group, "transformSourceCode name = " + name + ", srcFile = " + srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -187,11 +216,11 @@ public class InjectHelper {
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "========> Inject Begin ["+group+"] <========");
-                    PluginHelper.println(group,  "group = " + group);
-                    PluginHelper.println(group,  "srcFile = " + srcFile.getAbsolutePath());
-                    PluginHelper.println(group,  "dstFile = " + dstFile.getAbsolutePath());
-                    PluginHelper.println(group,  "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                    PluginHelper.println(group, "========> Inject Begin [" + group + "] <========");
+                    PluginHelper.println(group, "group = " + group);
+                    PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
+                    PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
+                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
                     PluginHelper.println(group, "");
                 }
 
@@ -204,11 +233,11 @@ public class InjectHelper {
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "");
-                    PluginHelper.println(group,  "group = " + group);
+                    PluginHelper.println(group, "group = " + group);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
                     PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End ["+group+"] <========");
+                    PluginHelper.println(group, "========> Inject End [" + group + "] <========");
                     PluginHelper.println(group, "");
                 }
             }

@@ -87,6 +87,7 @@ public class InjectTransform extends Transform {
         boolean isIncremental = transformInvocation.isIncremental();
         // 非增量就删除之前的
         if (!isIncremental) {
+            // build/tmp/xxx(任务名)
             File tmpDir = context.getTemporaryDir();
             FileUtils.cleanDirectory(tmpDir);
             outputProvider.deleteAll();
@@ -95,13 +96,7 @@ public class InjectTransform extends Transform {
         // 添加android.jar
         BaseExtension android = extensions.findByType(BaseExtension.class);
         if (null != android && null != extension) {
-            List<File> bootClasspath = android.getBootClasspath();
-            PluginHelper.printlnErr(group, "source 1:" + InjectHelper.pool.toString() +", "+ InjectHelper.pool.hashCode());
-            InjectHelper.appendClassPath(bootClasspath.get(0).getAbsolutePath());
-            PluginHelper.printlnErr(group, InjectHelper.pool + ", bootClasspath:" + bootClasspath.get(0).getAbsolutePath());
-            PluginHelper.printlnErr(group, "source 2:" + InjectHelper.pool.toString());
-
-//            InjectHelper.appendClassPath(bootClasspath.get(0).getAbsolutePath());
+            InjectHelper.appendClassPath("android.jar", android.getBootClasspath().get(0).getAbsolutePath());
         }
         if (null != extension && extension.injectDebug) {
             PluginHelper.println(group, "transformWithInjectClass");
