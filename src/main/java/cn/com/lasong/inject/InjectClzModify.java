@@ -1,8 +1,6 @@
 package cn.com.lasong.inject;
 
-import org.gradle.api.Action;
-
-import java.io.File;
+import java.util.List;
 
 /**
  * Author: zhusong
@@ -17,25 +15,32 @@ public class InjectClzModify {
     // 内部类 cn.com.lasong.base.AppManager$Inner
     // 匿名类 cn.com.lasong.base.AppManager$1
     public String className;
-    // 需要注入的方法名
-    public String methodName;
-    // 方法参数签名
-    public String signature;
+
+    // 新增属性
+    public List<String> importPackages;
+
+    // 新增属性
+    public List<String> addFields;
+
+    // 新增方法
+    public List<String> addMethods;
+
     // 是否注入
     public boolean isInject = true;
 
+    public String getEntryName() {
+        if (null != className) {
+            return className.replace(".", "/") +".class";
+        }
+        return null;
+    }
 
-    public void className(Action<String> action) {
-        action.execute(className);
+    public List<String> getImportPackages() {
+        return importPackages;
     }
-    public void methodName(Action<String> action) {
-        action.execute(methodName);
-    }
-    public void signature(Action<String> action) {
-        action.execute(signature);
-    }
-    public void isInject(Action<Boolean> action) {
-        action.execute(isInject);
+
+    public void setImportPackages(List<String> importPackages) {
+        this.importPackages = importPackages;
     }
 
     public String getClassName() {
@@ -46,20 +51,20 @@ public class InjectClzModify {
         this.className = className;
     }
 
-    public String getMethodName() {
-        return methodName;
+    public List<String> getAddFields() {
+        return addFields;
     }
 
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
+    public void setAddFields(List<String> addFields) {
+        this.addFields = addFields;
     }
 
-    public String getSignature() {
-        return signature;
+    public List<String> getAddMethods() {
+        return addMethods;
     }
 
-    public void setSignature(String signature) {
-        this.signature = signature;
+    public void setAddMethods(List<String> addMethods) {
+        this.addMethods = addMethods;
     }
 
     public boolean isInject() {
@@ -70,22 +75,17 @@ public class InjectClzModify {
         isInject = inject;
     }
 
-    public String getEntryName() {
-        if (null != className) {
-            return className.replace(".", File.separator) +".class";
-        }
-        return null;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
         sb.append("\"className\":\"")
                 .append(className).append('\"');
-        sb.append(",\"methodName\":\"")
-                .append(methodName).append('\"');
-        sb.append(",\"signature\":\"")
-                .append(signature).append('\"');
+        sb.append(",\"importPackages\":")
+                .append(importPackages);
+        sb.append(",\"addFields\":")
+                .append(addFields);
+        sb.append(",\"addMethods\":")
+                .append(addMethods);
         sb.append(",\"isInject\":")
                 .append(isInject);
         sb.append('}');

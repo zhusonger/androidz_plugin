@@ -10,13 +10,17 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +32,9 @@ import java.util.jar.JarOutputStream;
 import cn.com.lasong.utils.PluginHelper;
 import javassist.ClassPath;
 import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtField;
+import javassist.CtMethod;
 import javassist.NotFoundException;
 
 public class InjectHelper {
@@ -44,7 +51,7 @@ public class InjectHelper {
      * @return
      */
     public static boolean appendClassPath(String tag, String path) {
-        //project.android.bootClasspath 加入android.jar，不然找不到android相关的所有类
+        removeClassPath(tag);
         try {
             ClassPath classPath = pool.appendClassPath(path);
             clzPaths.put(tag, classPath);
@@ -53,6 +60,19 @@ public class InjectHelper {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * 移除tag对应的classpath
+     *
+     * @param tag
+     * @return
+     */
+    public static void removeClassPath(String tag) {
+        ClassPath cachePath = clzPaths.get(tag);
+        if (null != cachePath) {
+            pool.removeClassPath(cachePath);
+        }
     }
 
     /**
@@ -82,8 +102,6 @@ public class InjectHelper {
                 input.getScopes(), Format.JAR);
 
         File srcFile = input.getFile();
-
-        PluginHelper.printlnErr(group, "transformJar name = " + name + ", srcFile = " + srcFile.getAbsolutePath());
 
         // 添加jar包路径
         appendClassPath(tag, srcFile.getAbsolutePath());
@@ -125,29 +143,128 @@ public class InjectHelper {
                 String clzNewDir = injectDomain.clzNewDir;
                 if (null != clzNewDir && !clzNewDir.isEmpty()) {
                     File clzDir = new File(proDir, clzNewDir);
+                    appendClassPath(tag + "_clzNewDir", clzDir.getAbsolutePath());
                     writeClassToJar(group, extension, clzDir, clzDir, srcJarOutput);
                 }
 
                 // 2. modify class
-                List<InjectClzModify> clzModify = injectDomain.clzModify;
-                if (null != clzModify && !clzModify.isEmpty()) {
-//                    JarEntry destEntry = new JarEntry(entryName);
-//                    srcJarOutput.putNextEntry(destEntry);
-//                    byte[] srcBytes = IOUtils.toByteArray(new FileInputStream(clzFile));
-//                    srcJarOutput.write(srcBytes);
-//                    srcJarOutput.closeEntry();
-                }
-
                 Enumeration<JarEntry> entries = srcJar.entries();
                 while (entries.hasMoreElements()) {
-                    JarEntry destEntry = entries.nextElement();
-                    srcJarOutput.putNextEntry(destEntry);
-                    InputStream stream = srcJar.getInputStream(destEntry);
-                    byte[] srcBytes = new byte[stream.available()];
-                    int len;
-                    while ((len = stream.read(srcBytes)) > 0) {
-                        srcJarOutput.write(srcBytes, 0, len);
+                    JarEntry srcEntry = entries.nextElement();
+                    String entryName = srcEntry.getName();
+
+                    JarEntry dstEntry = new JarEntry(entryName);
+                    srcJarOutput.putNextEntry(dstEntry);
+
+                    InjectClzModify clzModify = null;
+                    if (null != injectDomain.clzModify && !injectDomain.clzModify.isEmpty()) {
+                        for (InjectClzModify modify : injectDomain.clzModify) {
+                            // 不注入就跳过
+                            if (!modify.isInject) {
+                                continue;
+                            }
+                            String className = modify.className;
+
+                            String clzEntryName = modify.getEntryName();
+
+                            if (entryName.equals(clzEntryName)) {
+                                URL url = pool.find(className);
+                                if (null != url) {
+                                    // 找到修改的类
+                                    clzModify = modify;
+                                }
+                                break;
+                            }
+                        }
                     }
+
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    // 需要修改
+                    if (null != clzModify) {
+                        String className = clzModify.className;
+                        CtClass ctClass = null;
+
+                        try {
+                            ctClass = pool.get(className);
+                            // 解冻
+                            if (ctClass.isFrozen()) {
+                                ctClass.defrost();
+                            }
+                            // 导入关联类
+                            List<String> importPackages = clzModify.importPackages;
+                            if (null != importPackages && !importPackages.isEmpty()) {
+                                for (String packageName : importPackages) {
+                                    pool.importPackage(packageName);
+                                    PluginHelper.println(group, "importPackage [" + packageName + "]");
+                                }
+                            }
+                            // 新增属性
+                            List<String> addFields = clzModify.addFields;
+                            if (null != addFields && !addFields.isEmpty()) {
+                                for (String field : addFields) {
+                                    try {
+                                        CtField ctField = CtField.make(field, ctClass);
+                                        ctClass.addField(ctField);
+                                        PluginHelper.println(group, "addField [" + field + "]");
+                                    } catch (Exception e) {
+                                        PluginHelper.printlnErr(group, "addField [" + field + "] Failure!");
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+
+                            // 新增方法
+                            List<String> addMethods = clzModify.addMethods;
+                            if (null != addMethods && !addMethods.isEmpty()) {
+                                for (String method : addMethods) {
+                                    try {
+                                        CtMethod ctMethod = CtMethod.make(method, ctClass);
+                                        ctClass.addMethod(ctMethod);
+                                        PluginHelper.println(group, "addMethod [" + method + "]");
+                                    } catch (Exception e) {
+                                        PluginHelper.printlnErr(group, "addMethod Failure!\n" + method);
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                            bos.write(ctClass.toBytecode());
+                            PluginHelper.println(group, "modify [" + className + "] Done!");
+                        } catch (Exception e) {
+                            PluginHelper.printlnErr(group, "modify [" + className + "] Failure!");
+                            e.printStackTrace();
+                        } finally {
+                            if (null != ctClass) {
+                                ctClass.detach();
+                            }
+
+                            // 移除导入的包
+                            List<String> importPackages = clzModify.importPackages;
+                            if (null != importPackages && !importPackages.isEmpty()) {
+                                Set<String> pkgSet = new HashSet<>(importPackages);
+                                Iterator<String> iterator = pool.getImportedPackages();
+                                while (iterator.hasNext()) {
+                                    String pkg = iterator.next();
+                                    if (pkgSet.contains(pkg)) {
+                                        iterator.remove();
+                                        PluginHelper.println(group, "removePackage [" + pkg + "]");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 如果没有修改, 使用原来的
+                    if (bos.size() == 0) {
+                        InputStream stream = srcJar.getInputStream(srcEntry);
+                        byte[] srcBytes = new byte[4096];
+                        int len;
+                        while ((len = stream.read(srcBytes)) > 0) {
+                            bos.write(srcBytes, 0, len);
+                        }
+                    }
+
+
+                    srcJarOutput.write(bos.toByteArray());
                     srcJarOutput.closeEntry();
                 }
 
@@ -156,6 +273,9 @@ public class InjectHelper {
                 srcJar.close();
                 // 成功之后更新复制的源jar包
                 srcFile = srcTmpFile;
+
+                // 已经加入到jar包中, 不需要了
+                removeClassPath(tag + "_clzNewDir");
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "");
@@ -169,9 +289,11 @@ public class InjectHelper {
             }
             // 否则没有需要注入的, 就直接复制, 不进行修改
         }
-
         // 写入到目标文件
         FileUtils.copyFile(srcFile, dstFile);
+
+        // 更换jar包路径为最终修改后的jar包路径
+        appendClassPath(tag, dstFile.getAbsolutePath());
     }
 
     /**

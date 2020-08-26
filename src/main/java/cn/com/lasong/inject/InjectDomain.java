@@ -2,7 +2,6 @@ package cn.com.lasong.inject;
 
 import org.gradle.api.Action;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,7 +32,7 @@ public class InjectDomain {
     public String clzNewDir;
 
     // 修改字节文件列表
-    public List<InjectClzModify> clzModify = new ArrayList<>();
+    public List<InjectClzModify> clzModify;
 
     public void group(Action<String> action) {
         action.execute(group);

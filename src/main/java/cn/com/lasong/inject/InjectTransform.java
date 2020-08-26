@@ -20,7 +20,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import cn.com.lasong.utils.PluginHelper;
@@ -96,6 +95,7 @@ public class InjectTransform extends Transform {
         // 添加android.jar
         BaseExtension android = extensions.findByType(BaseExtension.class);
         if (null != android && null != extension) {
+            // 加入android.jar，不然找不到android相关的所有类
             InjectHelper.appendClassPath("android.jar", android.getBootClasspath().get(0).getAbsolutePath());
         }
         if (null != extension && extension.injectDebug) {
