@@ -36,6 +36,8 @@ import javassist.CtClass;
 import javassist.CtField;
 import javassist.CtMethod;
 import javassist.NotFoundException;
+import javassist.bytecode.AccessFlag;
+import javassist.bytecode.Descriptor;
 
 public class InjectHelper {
 
@@ -378,14 +380,94 @@ public class InjectHelper {
                 // 导入关联类
                 List<String> importPackages = clzModify.importPackages;
                 if (null != importPackages && !importPackages.isEmpty()) {
+                    PluginHelper.println(group, "");
                     for (String packageName : importPackages) {
                         pool.importPackage(packageName);
                         PluginHelper.println(group, "importPackage [" + packageName + "]");
                     }
                 }
+
+                // 修改方法
+                List<InjectModifyMethod> modifyMethods = clzModify.modifyMethods;
+                if (null != modifyMethods && !modifyMethods.isEmpty()) {
+                    PluginHelper.println(group, "");
+                    for (InjectModifyMethod method : modifyMethods) {
+                        String name = method.name;
+                        if (null == name || name.length() == 0) {
+                            continue;
+                        }
+                        CtClass[] params = parseCtClass(method.params);
+
+                        CtMethod ctMethod;
+                        if (null != params) {
+                            ctMethod = ctClass.getDeclaredMethod(name, params);
+                        } else {
+                            ctMethod = ctClass.getDeclaredMethod(name);
+                        }
+
+                        if (null == ctMethod) {
+                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] name is null !");
+                            continue;
+                        }
+
+                        String type = method.type;
+                        if (null == type || type.length() == 0) {
+                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] type is null !");
+                            continue;
+                        }
+                        String content = method.content;
+                        if (null == content || content.length() == 0) {
+                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] content is null !");
+                            continue;
+                        }
+
+                        if (type.equalsIgnoreCase("insertAt") && method.lineNum < 0) {
+                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] lineNum can't empty !");
+                            continue;
+                        }
+
+                        if (type.equalsIgnoreCase("insertBefore")) {
+                            ctMethod.insertBefore(content);
+                        } else if (type.equalsIgnoreCase("insertAfter")) {
+                            ctMethod.insertAfter(content);
+                        } else if (type.equalsIgnoreCase("insertAt")) {
+                            ctMethod.insertAt(method.lineNum, content);
+                        } else if (type.equalsIgnoreCase("setBody")) {
+                            ctMethod.setBody(content);
+                        }
+
+                        String modifiers = method.modifiers;
+                        if (null != modifiers && modifiers.length() > 0) {
+                            int accessFlags;
+                            if (modifiers.contains("public")) {
+                                accessFlags = AccessFlag.PUBLIC;
+                            } else if (modifiers.contains("private")) {
+                                accessFlags = AccessFlag.PRIVATE;
+                            } else {
+                                accessFlags = AccessFlag.PROTECTED;
+                            }
+                            if (modifiers.contains("final")) {
+                                accessFlags |= AccessFlag.FINAL;
+                            }
+                            if (modifiers.contains("static")) {
+                                accessFlags |= AccessFlag.STATIC;
+                            }
+                            if (modifiers.contains("synchronized")) {
+                                accessFlags |= AccessFlag.SYNCHRONIZED;
+                            }
+                            ctMethod.setModifiers(accessFlags);
+
+                        }
+
+                        PluginHelper.println(group, "modifyMethod [" + name + "] " + type);
+                        PluginHelper.println(group, content);
+                    }
+                }
+
                 // 新增属性
                 List<String> addFields = clzModify.addFields;
                 if (null != addFields && !addFields.isEmpty()) {
+                    PluginHelper.println(group, "");
                     for (String field : addFields) {
                         try {
                             CtField ctField = CtField.make(field, ctClass);
@@ -401,6 +483,7 @@ public class InjectHelper {
                 // 新增方法
                 List<String> addMethods = clzModify.addMethods;
                 if (null != addMethods && !addMethods.isEmpty()) {
+                    PluginHelper.println(group, "");
                     for (String method : addMethods) {
                         try {
                             CtMethod ctMethod = CtMethod.make(method, ctClass);
@@ -427,6 +510,7 @@ public class InjectHelper {
                 // 移除导入的包
                 List<String> importPackages = clzModify.importPackages;
                 if (null != importPackages && !importPackages.isEmpty()) {
+                    PluginHelper.println(group, "");
                     Set<String> pkgSet = new HashSet<>(importPackages);
                     Iterator<String> iterator = pool.getImportedPackages();
                     while (iterator.hasNext()) {
@@ -441,5 +525,22 @@ public class InjectHelper {
         }
 
         return null;
+    }
+
+    /**
+     * 解析方法签名到CtClass参数
+     * @param params
+     * @return
+     */
+    private static CtClass[] parseCtClass(String params) {
+        CtClass[] ret = null;
+        if (null != params && params.length() > 0) {
+            try {
+                ret = Descriptor.getParameterTypes(params, pool);
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return ret;
     }
 }

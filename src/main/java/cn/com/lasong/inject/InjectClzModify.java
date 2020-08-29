@@ -1,5 +1,6 @@
 package cn.com.lasong.inject;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -25,6 +26,8 @@ public class InjectClzModify {
     // 新增方法
     public List<String> addMethods;
 
+    // 方法修改
+    public List<InjectModifyMethod> modifyMethods;
     // 是否注入
     public boolean isInject = true;
 
@@ -75,6 +78,14 @@ public class InjectClzModify {
         isInject = inject;
     }
 
+    public List<InjectModifyMethod> getModifyMethods() {
+        return modifyMethods;
+    }
+
+    public void setModifyMethods(InjectModifyMethod[] modifyMethods) {
+        this.modifyMethods = Arrays.asList(modifyMethods);
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
@@ -86,6 +97,8 @@ public class InjectClzModify {
                 .append(addFields);
         sb.append(",\"addMethods\":")
                 .append(addMethods);
+        sb.append(",\"modifyMethods\":")
+                .append(modifyMethods);
         sb.append(",\"isInject\":")
                 .append(isInject);
         sb.append('}');
