@@ -90,7 +90,8 @@ public class InjectTransform extends Transform {
             File tmpDir = context.getTemporaryDir();
             FileUtils.cleanDirectory(tmpDir);
             outputProvider.deleteAll();
-            PluginHelper.println(group, "clean = " + tmpDir.getAbsolutePath());
+            if (null != extension && extension.injectDebug)
+                PluginHelper.println(group, "clean = " + tmpDir.getAbsolutePath());
         }
 
         // 添加android.jar

@@ -174,7 +174,7 @@ public class InjectHelper {
                     JarEntry dstEntry = new JarEntry(entryName);
                     srcJarOutput.putNextEntry(dstEntry);
                     // 修改
-                    byte[] buffer = injectClass(group, injectDomain, entryName);
+                    byte[] buffer = injectClass(group, extension.injectDebug, injectDomain, entryName);
 
                     // 如果没有修改, 使用原来的
                     if (null == buffer) {
@@ -287,7 +287,7 @@ public class InjectHelper {
                     String entryName = file.getAbsolutePath().replace(clzDirPath, "");
 
                     // 修改
-                    byte[] buffer = injectClass(group, injectDomain, entryName);
+                    byte[] buffer = injectClass(group, extension.injectDebug, injectDomain, entryName);
 
                     // 没有修改使用原始文件
                     if (null == buffer) {
@@ -370,7 +370,7 @@ public class InjectHelper {
             String entryName = file.getAbsolutePath().replace(clzDirPath, "");
 
             // 修改
-            byte[] buffer = injectClass(group, injectDomain, entryName);
+            byte[] buffer = injectClass(group, injectDebug, injectDomain, entryName);
 
             // 没有修改使用原始文件
             if (null == buffer) {
@@ -388,11 +388,12 @@ public class InjectHelper {
      * 注入类
      *
      * @param group
+     * @param injectDebug
      * @param injectDomain
      * @param entryName
      * @return
      */
-    public static byte[] injectClass(String group, InjectDomain injectDomain, String entryName) {
+    public static byte[] injectClass(String group, boolean injectDebug, InjectDomain injectDomain, String entryName) {
         InjectClzModify clzModify = null;
         if (null != injectDomain.clzModify && !injectDomain.clzModify.isEmpty()) {
             for (InjectClzModify modify : injectDomain.clzModify) {
@@ -430,22 +431,26 @@ public class InjectHelper {
                 // 导入关联类
                 List<String> importPackages = clzModify.importPackages;
                 if (null != importPackages && !importPackages.isEmpty()) {
-                    PluginHelper.println(group, "");
+                    if (injectDebug)
+                        PluginHelper.println(group, "");
                     for (String packageName : importPackages) {
                         pool.importPackage(packageName);
-                        PluginHelper.println(group, "importPackage [" + packageName + "]");
+                        if (injectDebug)
+                            PluginHelper.println(group, "importPackage [" + packageName + "]");
                     }
                 }
 
                 // 新增属性
                 List<String> addFields = clzModify.addFields;
                 if (null != addFields && !addFields.isEmpty()) {
-                    PluginHelper.println(group, "");
+                    if (injectDebug)
+                        PluginHelper.println(group, "");
                     for (String field : addFields) {
                         try {
                             CtField ctField = CtField.make(field, ctClass);
                             ctClass.addField(ctField);
-                            PluginHelper.println(group, "addField [" + field + "]");
+                            if (injectDebug)
+                                PluginHelper.println(group, "addField [" + field + "]");
                         } catch (Exception e) {
                             PluginHelper.printlnErr(group, "addField [" + field + "] Failure!");
                             e.printStackTrace();
@@ -456,12 +461,14 @@ public class InjectHelper {
                 // 新增方法
                 List<String> addMethods = clzModify.addMethods;
                 if (null != addMethods && !addMethods.isEmpty()) {
-                    PluginHelper.println(group, "");
+                    if (injectDebug)
+                        PluginHelper.println(group, "");
                     for (String method : addMethods) {
                         try {
                             CtMethod ctMethod = CtMethod.make(method, ctClass);
                             ctClass.addMethod(ctMethod);
-                            PluginHelper.println(group, "addMethod [" + method + "]");
+                            if (injectDebug)
+                                PluginHelper.println(group, "addMethod [" + method + "]");
                         } catch (Exception e) {
                             PluginHelper.printlnErr(group, "addMethod Failure!" + method);
                             e.printStackTrace();
@@ -472,7 +479,8 @@ public class InjectHelper {
                 // 修改方法
                 List<InjectModifyMethod> modifyMethods = clzModify.modifyMethods;
                 if (null != modifyMethods && !modifyMethods.isEmpty()) {
-                    PluginHelper.println(group, "");
+                    if (injectDebug)
+                        PluginHelper.println(group, "");
                     for (InjectModifyMethod method : modifyMethods) {
                         String name = method.name;
                         if (null == name || name.length() == 0) {
@@ -541,12 +549,15 @@ public class InjectHelper {
 
                         }
 
-                        PluginHelper.println(group, "modifyMethod [" + name + "] " + type);
-                        PluginHelper.println(group, content);
+                        if (injectDebug) {
+                            PluginHelper.println(group, "modifyMethod [" + name + "] " + type);
+                            PluginHelper.println(group, content);
+                        }
                     }
                 }
                 bos.write(ctClass.toBytecode());
-                PluginHelper.println(group, "modify [" + className + "] Done!");
+                if (injectDebug)
+                    PluginHelper.println(group, "modify [" + className + "] Done!");
 
                 return bos.toByteArray();
             } catch (Exception e) {
@@ -560,14 +571,16 @@ public class InjectHelper {
                 // 移除导入的包
                 List<String> importPackages = clzModify.importPackages;
                 if (null != importPackages && !importPackages.isEmpty()) {
-                    PluginHelper.println(group, "");
+                    if (injectDebug)
+                        PluginHelper.println(group, "");
                     Set<String> pkgSet = new HashSet<>(importPackages);
                     Iterator<String> iterator = pool.getImportedPackages();
                     while (iterator.hasNext()) {
                         String pkg = iterator.next();
                         if (pkgSet.contains(pkg)) {
                             iterator.remove();
-                            PluginHelper.println(group, "removePackage [" + pkg + "]");
+                            if (injectDebug)
+                                PluginHelper.println(group, "removePackage [" + pkg + "]");
                         }
                     }
                 }

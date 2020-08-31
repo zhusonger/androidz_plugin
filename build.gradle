@@ -30,6 +30,17 @@ if (JavaVersion.current().isJava8Compatible()) {
         options.addStringOption('Xdoclint:none', '-quiet')
     }
 }
+group = 'cn.com.lasong'
+version = "1.0.0-SNAPSHOT"
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: uri('../repo/greeting'))
+            snapshotRepository(url: uri('../snapshotRepo/greeting'))
+        }
+    }
+}
 
 publish {
     userOrg = rootProject.ext.bintrayUser
