@@ -67,7 +67,6 @@ public class InjectHelper {
      * 移除tag对应的classpath
      *
      * @param tag
-     * @return
      */
     public static void removeClassPath(String tag) {
         ClassPath cachePath = clzPaths.get(tag);

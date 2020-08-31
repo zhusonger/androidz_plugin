@@ -1,5 +1,9 @@
 apply plugin: 'groovy'
 apply plugin: 'maven'
+apply plugin: 'com.novoda.bintray-release'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
     //gradle sdk
@@ -19,14 +23,23 @@ repositories {
     google()
 }
 
-group = 'cn.com.lasong'
-version = "1.0.0-SNAPSHOT"
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: uri('../repo/greeting'))
-            snapshotRepository(url: uri('../snapshotRepo/greeting'))
-        }
+if (JavaVersion.current().isJava8Compatible()) {
+    tasks.withType(Javadoc) {
+        // disable the crazy super-strict doclint tool in Java 8
+        //noinspection SpellCheckingInspection
+        options.addStringOption('Xdoclint:none', '-quiet')
     }
+}
+
+publish {
+    userOrg = rootProject.ext.bintrayUser
+    groupId = rootProject.ext.groupId
+    bintrayUser = rootProject.ext.bintrayUser
+    bintrayKey = rootProject.ext.bintrayKey
+    dryRun false
+    override true
+    artifactId = 'plugin'
+    publishVersion = '0.0.1'
+    desc = 'AndroidZ Plugin'
+    website = "https://github.com/zhusonger/androidz_plugin"
 }
