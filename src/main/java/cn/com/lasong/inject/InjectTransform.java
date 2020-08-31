@@ -90,6 +90,7 @@ public class InjectTransform extends Transform {
             File tmpDir = context.getTemporaryDir();
             FileUtils.cleanDirectory(tmpDir);
             outputProvider.deleteAll();
+            PluginHelper.println(group, "clean = " + tmpDir.getAbsolutePath());
         }
 
         // 添加android.jar
@@ -99,7 +100,6 @@ public class InjectTransform extends Transform {
             InjectHelper.appendClassPath("android.jar", android.getBootClasspath().get(0).getAbsolutePath());
         }
         if (null != extension && extension.injectDebug) {
-            PluginHelper.println(group, "transformWithInjectClass");
             PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
         }
 
@@ -111,7 +111,7 @@ public class InjectTransform extends Transform {
             }
             for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
                 // 对directory进行处理
-                InjectHelper.transformSourceCode(group, directoryInput, extension, outputProvider, context, proDir);
+                InjectHelper.transformCode(group, directoryInput, extension, outputProvider, context, proDir);
             }
         }
     }

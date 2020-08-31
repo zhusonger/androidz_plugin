@@ -55,7 +55,7 @@ public class PluginHelper {
 
     public static void printlnErr(String tag, String message) {
         String out = String.format(Locale.CHINA, "> [%s] %s", tag, message);
-        System.err.println(out);
+        System.out.println("Error!!!!\n" + out);
     }
 
     /**

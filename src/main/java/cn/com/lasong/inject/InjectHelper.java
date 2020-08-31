@@ -15,15 +15,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -105,8 +104,6 @@ public class InjectHelper {
 
         File srcFile = input.getFile();
 
-        // 添加jar包路径
-        appendClassPath(tag, srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -128,15 +125,16 @@ public class InjectHelper {
             // 注入
             if (null != injectDomain) {
 
+                // 添加jar包路径
+                appendClassPath(tag, srcFile.getAbsolutePath());
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "========> Inject Begin [" + tag + "] <========");
+                    PluginHelper.println(group, "========> Inject Begin transformJar [" + tag + "] <========");
                     PluginHelper.println(group, "name = " + name);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
                     PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "");
                 }
 
                 JarFile srcJar = new JarFile(srcFile);
@@ -145,8 +143,27 @@ public class InjectHelper {
                 String clzNewDir = injectDomain.clzNewDir;
                 if (null != clzNewDir && !clzNewDir.isEmpty()) {
                     File clzDir = new File(proDir, clzNewDir);
-                    appendClassPath(tag + "_clzNewDir", clzDir.getAbsolutePath());
-                    writeClassToJar(group, injectDomain, extension.injectDebug, clzDir, clzDir, srcJarOutput);
+                    File dstDir = new File(tmpDir, clzNewDir);
+                    // 先复制到临时目录
+                    FileUtils.copyDirectory(clzDir, dstDir);
+                    // 添加临时路径
+                    appendClassPath(tag + "_clzNewDir", dstDir.getAbsolutePath());
+                    // 移除缓存文件
+                    cleanJavacCache(dstDir, srcFile);
+                    // 修改字节码
+                    writeClassToSource(group, injectDomain, extension.injectDebug, dstDir);
+                    // 修改后的字节码加入到jar包
+                    // 保留clzNewDir到classpath, 这样后面的修改就可以基于这个修改过的字节码
+                    List<File> clzList = listClasses(dstDir);
+                    String clzDirPath = dstDir.getAbsolutePath() + File.separator;
+                    for (File file : clzList) {
+                        String entryName = file.getAbsolutePath().replace(clzDirPath, "");
+                        JarEntry dstEntry = new JarEntry(entryName);
+                        srcJarOutput.putNextEntry(dstEntry);
+                        byte[] buffer = IOUtils.toByteArray(new FileInputStream(file));
+                        srcJarOutput.write(buffer);
+                        srcJarOutput.closeEntry();
+                    }
                 }
 
                 // 2. modify class
@@ -162,14 +179,7 @@ public class InjectHelper {
 
                     // 如果没有修改, 使用原来的
                     if (null == buffer) {
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        InputStream stream = srcJar.getInputStream(srcEntry);
-                        byte[] srcBytes = new byte[4096];
-                        int len;
-                        while ((len = stream.read(srcBytes)) > 0) {
-                            bos.write(srcBytes, 0, len);
-                        }
-                        buffer = bos.toByteArray();
+                        buffer = IOUtils.toByteArray(srcJar.getInputStream(srcEntry));
                     }
 
                     srcJarOutput.write(buffer);
@@ -182,8 +192,9 @@ public class InjectHelper {
                 // 成功之后更新复制的源jar包
                 srcFile = srcTmpFile;
 
-                // 已经加入到jar包中, 不需要了
+                // 移除临时路径, 已经加入到jar包中
                 removeClassPath(tag + "_clzNewDir");
+                removeClassPath(tag);
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "");
@@ -191,7 +202,7 @@ public class InjectHelper {
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
                     PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End  [" + tag + "] <========");
+                    PluginHelper.println(group, "========> Inject End transformJar [" + tag + "] <========");
                     PluginHelper.println(group, "");
                 }
             }
@@ -215,7 +226,7 @@ public class InjectHelper {
      * @param proDir
      * @throws IOException
      */
-    public static void transformSourceCode(String group, DirectoryInput input, InjectExtension extension, TransformOutputProvider outputProvider, Context context, File proDir) throws IOException {
+    public static void transformCode(String group, DirectoryInput input, InjectExtension extension, TransformOutputProvider outputProvider, Context context, File proDir) throws IOException {
 
         //对源码文件进行处理
         String name = input.getName();
@@ -224,9 +235,8 @@ public class InjectHelper {
         File dstFile = outputProvider.getContentLocation(input.getName(), input.getContentTypes(),
                 input.getScopes(), Format.DIRECTORY);
 
+        // 源码class目录
         File srcFile = input.getFile();
-
-        PluginHelper.printlnErr(group, "transformSourceCode name = " + name + ", srcFile = " + srcFile.getAbsolutePath());
 
         if (null != extension) {
             Set<InjectDomain> set = extension.injectDomains;
@@ -243,31 +253,69 @@ public class InjectHelper {
             }
 
             if (null != injectDomain) {
-                File srcTmpFile = new File(tmpDir, srcFile.getName());
+                // 添加源码路径
+                appendClassPath(group, srcFile.getAbsolutePath());
 
                 if (extension.injectDebug) {
-                    PluginHelper.println(group, "========> Inject Begin [" + group + "] <========");
+                    PluginHelper.println(group, "========> Inject Begin transformCode [" + group + "] <========");
                     PluginHelper.println(group, "group = " + group);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
-                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "");
                 }
 
                 // 1. create class
                 String clzNewDir = injectDomain.clzNewDir;
+                File clzNewDstDir = null;
                 if (null != clzNewDir && !clzNewDir.isEmpty()) {
                     File clzDir = new File(proDir, clzNewDir);
-                    FileUtils.copyDirectory(clzDir, srcFile);
+                    File dstDir = new File(tmpDir, clzNewDir);
+                    // 先复制到临时目录
+                    FileUtils.copyDirectory(clzDir, dstDir);
+                    // 添加临时路径
+                    appendClassPath(group + "_clzNewDir", dstDir.getAbsolutePath());
+                    // 移除缓存文件
+                    cleanJavacCache(dstDir, srcFile);
+                    // 修改字节码
+                    writeClassToSource(group, injectDomain, extension.injectDebug, dstDir);
+
+                    clzNewDstDir = dstDir;
                 }
+
+                // 2. modify class
+                List<File> clzList = listClasses(srcFile);
+                String clzDirPath = srcFile.getAbsolutePath() + File.separator;
+                for (File file : clzList) {
+                    String entryName = file.getAbsolutePath().replace(clzDirPath, "");
+
+                    // 修改
+                    byte[] buffer = injectClass(group, injectDomain, entryName);
+
+                    // 没有修改使用原始文件
+                    if (null == buffer) {
+                        buffer = IOUtils.toByteArray(new FileInputStream(file));
+                    }
+
+                    // 覆盖class文件
+                    FileOutputStream fos = new FileOutputStream(file);
+                    fos.write(buffer);
+                    fos.close();
+                }
+
+                // 复制到最终路径
+                if (null != clzNewDstDir) {
+                    FileUtils.copyDirectory(clzNewDstDir, srcFile);
+                }
+                // 移除临时路径, 已经拷贝的srcFile路径
+                removeClassPath(group + "_clzNewDir");
+                // 移除之前的源码路径
+                removeClassPath(group);
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "");
                     PluginHelper.println(group, "group = " + group);
                     PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
                     PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
-                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End [" + group + "] <========");
+                    PluginHelper.println(group, "========> Inject End transformCode [" + group + "] <========");
                     PluginHelper.println(group, "");
                 }
             }
@@ -275,68 +323,71 @@ public class InjectHelper {
 
         // 写入到目标文件
         FileUtils.copyDirectory(srcFile, dstFile);
+
+        // 更换最终的源码路径
+        appendClassPath(group, dstFile.getAbsolutePath());
     }
 
-
     /**
-     * 写入字节码文件到jar包
-     *
-     * @param group
-     * @param injectDebug
-     * @param clzDir
-     * @param clzFile
-     * @param srcJarOutput
-     * @throws IOException
+     * 移除javac中的缓存文件
+     * @param clzDir  修改的字节码文件夹
+     * @param srcFile 缓存的javac文件夹
      */
-    private static void writeClassToJar(String group, InjectDomain injectDomain, boolean injectDebug, File clzDir, File clzFile, JarOutputStream srcJarOutput) throws IOException {
-        if (clzFile == null || srcJarOutput == null) {
+    private static void cleanJavacCache(File clzDir, File srcFile) {
+        if (clzDir == null || null == srcFile) {
             return;
         }
-
 
         String clzDirPath = clzDir.getAbsolutePath() + File.separator;
-        String clzFilePath = clzFile.getAbsolutePath() + (clzFile.isDirectory() ? File.separator : "");
-        String entryName = clzFilePath.replace(clzDirPath, "");
+        List<File> clzList = listClasses(clzDir);
+        for (File file : clzList) {
+            String entryName = file.getAbsolutePath().replace(clzDirPath, "");
 
-        // 新建文件夹 & 文件夹下的文件
-        if (clzFile.isDirectory()) {
+            File srcCacheFile = new File(srcFile, entryName);
 
-            if (!entryName.isEmpty()) {
-                JarEntry entry = new JarEntry(entryName);
-                entry.setTime(clzFile.lastModified());
-                srcJarOutput.putNextEntry(entry);
-                srcJarOutput.closeEntry();
+            // 移除之前缓存的文件
+            if (srcCacheFile.exists()) {
+                srcCacheFile.delete();
             }
+        }
 
-            // 文件夹下写到jar包
-            for (File file : Objects.requireNonNull(clzFile.listFiles()))
-                writeClassToJar(group, injectDomain, injectDebug, clzDir, file, srcJarOutput);
-
+    }
+    /**
+     * 写入字节码到源码编译结果中
+     * @param group
+     * @param injectDomain
+     * @param injectDebug
+     * @param clzDir
+     * @throws IOException
+     */
+    private static void writeClassToSource(String group, InjectDomain injectDomain, boolean injectDebug, File clzDir) throws IOException {
+        if (clzDir == null) {
             return;
         }
 
-        // 写入class文件
-        JarEntry dstEntry = new JarEntry(entryName);
-        srcJarOutput.putNextEntry(dstEntry);
+        String clzDirPath = clzDir.getAbsolutePath() + File.separator;
+        List<File> clzList = listClasses(clzDir);
+        for (File file : clzList) {
+            String entryName = file.getAbsolutePath().replace(clzDirPath, "");
 
-        // 修改
-        byte[] buffer = injectClass(group, injectDomain, entryName);
-        if (null == buffer) {
-            buffer = IOUtils.toByteArray(new FileInputStream(clzFile));
-        }
-        srcJarOutput.write(buffer);
-        srcJarOutput.closeEntry();
+            // 修改
+            byte[] buffer = injectClass(group, injectDomain, entryName);
 
-        if (injectDebug) {
-            PluginHelper.println(group, "writeClassToJar:"
-                    + "entryName = " + entryName + ", "
-                    + "clzDirPath = " + clzDirPath + ", "
-                    + "clzFilePath = " + clzFilePath);
+            // 没有修改使用原始文件
+            if (null == buffer) {
+                buffer = IOUtils.toByteArray(new FileInputStream(file));
+            }
+
+            // 写入class文件
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(buffer);
+            fos.close();
         }
     }
 
     /**
      * 注入类
+     *
      * @param group
      * @param injectDomain
      * @param entryName
@@ -384,6 +435,38 @@ public class InjectHelper {
                     for (String packageName : importPackages) {
                         pool.importPackage(packageName);
                         PluginHelper.println(group, "importPackage [" + packageName + "]");
+                    }
+                }
+
+                // 新增属性
+                List<String> addFields = clzModify.addFields;
+                if (null != addFields && !addFields.isEmpty()) {
+                    PluginHelper.println(group, "");
+                    for (String field : addFields) {
+                        try {
+                            CtField ctField = CtField.make(field, ctClass);
+                            ctClass.addField(ctField);
+                            PluginHelper.println(group, "addField [" + field + "]");
+                        } catch (Exception e) {
+                            PluginHelper.printlnErr(group, "addField [" + field + "] Failure!");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                // 新增方法
+                List<String> addMethods = clzModify.addMethods;
+                if (null != addMethods && !addMethods.isEmpty()) {
+                    PluginHelper.println(group, "");
+                    for (String method : addMethods) {
+                        try {
+                            CtMethod ctMethod = CtMethod.make(method, ctClass);
+                            ctClass.addMethod(ctMethod);
+                            PluginHelper.println(group, "addMethod [" + method + "]");
+                        } catch (Exception e) {
+                            PluginHelper.printlnErr(group, "addMethod Failure!" + method);
+                            e.printStackTrace();
+                        }
                     }
                 }
 
@@ -463,38 +546,6 @@ public class InjectHelper {
                         PluginHelper.println(group, content);
                     }
                 }
-
-                // 新增属性
-                List<String> addFields = clzModify.addFields;
-                if (null != addFields && !addFields.isEmpty()) {
-                    PluginHelper.println(group, "");
-                    for (String field : addFields) {
-                        try {
-                            CtField ctField = CtField.make(field, ctClass);
-                            ctClass.addField(ctField);
-                            PluginHelper.println(group, "addField [" + field + "]");
-                        } catch (Exception e) {
-                            PluginHelper.printlnErr(group, "addField [" + field + "] Failure!");
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-                // 新增方法
-                List<String> addMethods = clzModify.addMethods;
-                if (null != addMethods && !addMethods.isEmpty()) {
-                    PluginHelper.println(group, "");
-                    for (String method : addMethods) {
-                        try {
-                            CtMethod ctMethod = CtMethod.make(method, ctClass);
-                            ctClass.addMethod(ctMethod);
-                            PluginHelper.println(group, "addMethod [" + method + "]");
-                        } catch (Exception e) {
-                            PluginHelper.printlnErr(group, "addMethod Failure!\n" + method);
-                            e.printStackTrace();
-                        }
-                    }
-                }
                 bos.write(ctClass.toBytecode());
                 PluginHelper.println(group, "modify [" + className + "] Done!");
 
@@ -521,6 +572,9 @@ public class InjectHelper {
                         }
                     }
                 }
+
+                //  修改完后不再进行注入
+                clzModify.isInject = false;
             }
         }
 
@@ -529,6 +583,7 @@ public class InjectHelper {
 
     /**
      * 解析方法签名到CtClass参数
+     *
      * @param params
      * @return
      */
@@ -542,5 +597,27 @@ public class InjectHelper {
             }
         }
         return ret;
+    }
+
+    /**
+     * 获取所有class文件
+     *
+     * @param dir
+     * @return
+     */
+    private static List<File> listClasses(File dir) {
+        File[] files = dir.listFiles();
+        List<File> clzList = new ArrayList<>();
+        if (null == files || files.length == 0) {
+            return clzList;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                clzList.addAll(listClasses(file));
+            } else {
+                clzList.add(file);
+            }
+        }
+        return clzList;
     }
 }
