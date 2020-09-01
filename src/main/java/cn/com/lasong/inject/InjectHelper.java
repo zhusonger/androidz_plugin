@@ -41,7 +41,7 @@ import javassist.bytecode.Descriptor;
 public class InjectHelper {
 
     //初始化类池
-    protected final static ClassPool pool = ClassPool.getDefault();
+    protected static ClassPool pool;
     // 加入类路径的记录, 方便修改
     protected final static Map<String, ClassPath> clzPaths = new HashMap<>();
 
@@ -51,7 +51,10 @@ public class InjectHelper {
      * @param path
      * @return
      */
-    public static boolean appendClassPath(String tag, String path) {
+    public synchronized static boolean appendClassPath(String tag, String path) {
+        if (null == pool) {
+           pool = new ClassPool(true);
+        }
         removeClassPath(tag);
         try {
             ClassPath classPath = pool.appendClassPath(path);
@@ -61,6 +64,15 @@ public class InjectHelper {
             e.printStackTrace();
         }
         return false;
+    }
+
+    /**
+     * 移除上一次的classpath
+     */
+    public synchronized static void clearClassPath() {
+        // 结束后移除这个classpool, 用同一个会有问题
+        pool = null;
+        clzPaths.clear();
     }
 
     /**
@@ -289,15 +301,12 @@ public class InjectHelper {
                     // 修改
                     byte[] buffer = injectClass(group, extension.injectDebug, injectDomain, entryName);
 
-                    // 没有修改使用原始文件
-                    if (null == buffer) {
-                        buffer = IOUtils.toByteArray(new FileInputStream(file));
-                    }
-
                     // 覆盖class文件
-                    FileOutputStream fos = new FileOutputStream(file);
-                    fos.write(buffer);
-                    fos.close();
+                    if (null != buffer) {
+                        FileOutputStream fos = new FileOutputStream(file);
+                        fos.write(buffer);
+                        fos.close();
+                    }
                 }
 
                 // 复制到最终路径
@@ -329,6 +338,7 @@ public class InjectHelper {
 
     /**
      * 移除javac中的缓存文件
+     *
      * @param clzDir  修改的字节码文件夹
      * @param srcFile 缓存的javac文件夹
      */
@@ -351,8 +361,10 @@ public class InjectHelper {
         }
 
     }
+
     /**
      * 写入字节码到源码编译结果中
+     *
      * @param group
      * @param injectDomain
      * @param injectDebug
@@ -393,7 +405,7 @@ public class InjectHelper {
      * @param entryName
      * @return
      */
-    public static byte[] injectClass(String group, boolean injectDebug, InjectDomain injectDomain, String entryName) {
+    public static byte[] injectClass(String group, boolean injectDebug, InjectDomain injectDomain, String entryName) throws IOException {
         InjectClzModify clzModify = null;
         if (null != injectDomain.clzModify && !injectDomain.clzModify.isEmpty()) {
             for (InjectClzModify modify : injectDomain.clzModify) {
@@ -452,8 +464,10 @@ public class InjectHelper {
                             if (injectDebug)
                                 PluginHelper.println(group, "addField [" + field + "]");
                         } catch (Exception e) {
-                            PluginHelper.printlnErr(group, "addField [" + field + "] Failure!");
+                            PluginHelper.printlnErr(group, "[" + entryName + "] addField " + field + "Failure!");
+                            PluginHelper.printlnErr(group, "ctClass = " + ctClass);
                             e.printStackTrace();
+                            throw new IOException(e);
                         }
                     }
                 }
@@ -470,8 +484,9 @@ public class InjectHelper {
                             if (injectDebug)
                                 PluginHelper.println(group, "addMethod [" + method + "]");
                         } catch (Exception e) {
-                            PluginHelper.printlnErr(group, "addMethod Failure!" + method);
+                            PluginHelper.printlnErr(group, "[" + entryName + "] addMethod " + method + "Failure!");
                             e.printStackTrace();
+                            throw new IOException(e);
                         }
                     }
                 }
@@ -496,24 +511,20 @@ public class InjectHelper {
                         }
 
                         if (null == ctMethod) {
-                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] name is null !");
-                            continue;
+                            throw new IOException("modifyMethod [" + name + "] name is null !");
                         }
 
                         String type = method.type;
                         if (null == type || type.length() == 0) {
-                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] type is null !");
-                            continue;
+                            throw new IOException("modifyMethod [" + name + "] type is null !");
                         }
                         String content = method.content;
                         if (null == content || content.length() == 0) {
-                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] content is null !");
-                            continue;
+                            throw new IOException("modifyMethod [" + name + "] content is null !");
                         }
 
                         if (type.equalsIgnoreCase("insertAt") && method.lineNum < 0) {
-                            PluginHelper.printlnErr(group, "modifyMethod [" + name + "] lineNum can't empty !");
-                            continue;
+                            throw new IOException("modifyMethod [" + name + "] lineNum[for insertAt] can't empty !");
                         }
 
                         if (type.equalsIgnoreCase("insertBefore")) {
@@ -546,7 +557,6 @@ public class InjectHelper {
                                 accessFlags |= AccessFlag.SYNCHRONIZED;
                             }
                             ctMethod.setModifiers(accessFlags);
-
                         }
 
                         if (injectDebug) {
@@ -563,6 +573,7 @@ public class InjectHelper {
             } catch (Exception e) {
                 PluginHelper.printlnErr(group, "modify [" + className + "] Failure!");
                 e.printStackTrace();
+                throw new IOException(e);
             } finally {
                 if (null != ctClass) {
                     ctClass.detach();
@@ -584,9 +595,6 @@ public class InjectHelper {
                         }
                     }
                 }
-
-                //  修改完后不再进行注入
-                clzModify.isInject = false;
             }
         }
 

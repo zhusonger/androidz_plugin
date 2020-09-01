@@ -100,9 +100,9 @@ public class InjectTransform extends Transform {
             // 加入android.jar，不然找不到android相关的所有类
             InjectHelper.appendClassPath("android.jar", android.getBootClasspath().get(0).getAbsolutePath());
         }
-        if (null != extension && extension.injectDebug) {
-            PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
-        }
+//        if (null != extension && extension.injectDebug) {
+//            PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
+//        }
 
         for (TransformInput input : inputs) {
             // 遍历输入，分别遍历其中的jar以及directory
@@ -114,6 +114,10 @@ public class InjectTransform extends Transform {
                 // 对directory进行处理
                 InjectHelper.transformCode(group, directoryInput, extension, outputProvider, context, proDir);
             }
+        }
+
+        if (null != android && null != extension) {
+            InjectHelper.clearClassPath();
         }
     }
 }
