@@ -256,7 +256,7 @@ __was expected to be of type direct but instead was found to be of type virtual_
 
 这可能是因为修改了原来的方法, 但是方法的范围修改了
 
-比如下面的错误是我把__newParentLayout__的修饰符从原来的__private__改为了__public__
+比如下面的错误是我把 __newParentLayout__ 的修饰符从原来的 __private__ 改为了 __public__
 
 java.lang.IncompatibleClassChangeError: The method 'android.widget.FrameLayout com.hitomi.tilibrary.transfer.TransferAdapter.newParentLayout(android.view.ViewGroup, int)'
 was expected to be of type direct but instead was found to be of type virtual (declaration of 'com.hitomi.tilibrary.transfer.TransferAdapter'
