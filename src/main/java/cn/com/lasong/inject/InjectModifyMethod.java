@@ -1,9 +1,12 @@
 package cn.com.lasong.inject;
 
-import java.util.List;
-
 public class InjectModifyMethod {
 
+    public static final String ACTION_MODIFY = "MODIFY";
+    public static final String ACTION_ADD_FIELD = "ADD_FIELD";
+    public static final String ACTION_ADD_METHOD = "ADD_METHOD";
+    public static final String ACTION_DEFAULT = ACTION_MODIFY;
+    public String action = ACTION_DEFAULT;
     // 修饰符
     public String modifiers;
 
@@ -15,6 +18,9 @@ public class InjectModifyMethod {
 
     // 插入的代码
     public String content;
+
+    // 新的方法名
+    public String newName;
 
     // 插入类型
 //    insertBefore : 在方法的起始位置插入代码；
@@ -28,6 +34,14 @@ public class InjectModifyMethod {
 
     public String getModifiers() {
         return modifiers;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
     }
 
     public void setModifiers(String modifiers) {
@@ -74,15 +88,29 @@ public class InjectModifyMethod {
         this.lineNum = lineNum;
     }
 
+    public String getNewName() {
+        return newName;
+    }
+
+    public void setNewName(String newName) {
+        this.newName = newName;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
-        sb.append("\"name\":\"")
+        sb.append("\"action\":\"")
+                .append(action).append('\"');
+        sb.append(",\"modifiers\":\"")
+                .append(modifiers).append('\"');
+        sb.append(",\"name\":\"")
                 .append(name).append('\"');
         sb.append(",\"params\":\"")
                 .append(params).append('\"');
         sb.append(",\"content\":\"")
                 .append(content).append('\"');
+        sb.append(",\"newName\":\"")
+                .append(newName).append('\"');
         sb.append(",\"type\":\"")
                 .append(type).append('\"');
         sb.append(",\"lineNum\":")

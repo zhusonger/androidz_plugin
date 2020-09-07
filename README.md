@@ -7,7 +7,7 @@
 // 根目录build.gradle
 buildscript {
     dependencies {
-        classpath "cn.com.lasong:plugin:0.0.1"
+        classpath "cn.com.lasong:plugin:latest_version"
     }
 }
 ```
@@ -30,6 +30,22 @@ buildscript {
 
 * 0.0.2
 默认自动导入所有的包名, 避免繁复的加入包名的问题
+
+* 0.0.3
+去除__addFields__和__addMethods__属性, 统一都在modifyMethods数组中。
+
+新增action配置, 值如下, 默认值是__修改__行为
+
+```
+public static final String ACTION_MODIFY = "MODIFY";
+public static final String ACTION_ADD_FIELD = "ADD_FIELD";
+public static final String ACTION_ADD_METHOD = "ADD_METHOD";
+public static final String ACTION_DEFAULT = ACTION_MODIFY;
+```
+
+主要是考虑修改是一环扣一环的, 如果分开可能无法实效后面的修改依赖之前的修改。
+
+按照数组的顺序执行, 可以实现后面的使用前面的修改。
 
 ### 使用
 
@@ -69,43 +85,13 @@ allInjects {
                             className     : 'io.agora.rtc.internal.RtcEngineImpl',
                             // 是否注入, 默认true
                             isInject : false,
-                            // 代码关联的类需要导入的包
+                            // 代码关联的类需要导入的包, 默认引入的库都会导入, 可根据需要再添加
                             importPackages: [
                                     "java.io",
                                     "android.util.Log",
                                     "cn.com.lasong",
                                     "io.agora.rtc.internal"
-                            ],
-                            // 添加属性
-                            addFields     : [
-                                    "public String stringValue;",
-                                    "public int intValue;",
-                                    "public static boolean booleanValue;",
-                                    "public TestCreate2 test;"
-                            ],
-                            // 添加方法
-                            addMethods    : [
-                                    """
-                                    public RtcEngineImpl addMethod() {
-                                        RtcEngineImpl aaa = null;
-                                        intValue = 1;
-                                        booleanValue = true;
-                                        stringValue = "addMethod";
-                                        System.out.println("addMethod");
-                                        return aaa;
-                                    }
-                                    """,
-                                    """
-                                    public void addMethod2() {
-                                        RtcEngineImpl temp;
-
-                                        if (booleanValue) {
-                                             temp = this;
-                                        }
-                                        Log.e("Test", "addMethod2");
-                                    }
-                                    """,
-                            ],
+                            ]
                             // 修改方法
                             modifyMethods : [
                                     [
@@ -133,7 +119,25 @@ allInjects {
                                                     Log.e("Test", "pullPlaybackAudioFrame"+ \$2);
                                                     """,
                                             type     : "insertBefore"
-                                    ]
+                                    ],
+                                    [
+                                            action : "ADD_METHOD",
+                                            """
+                                            public RtcEngineImpl addMethod() {
+                                                RtcEngineImpl aaa = null;
+                                                intValue = 1;
+                                                booleanValue = true;
+                                                stringValue = "addMethod";
+                                                System.out.println("addMethod");
+                                                return aaa;
+                                            }
+                                            """
+                                    ],
+                                     [
+                                             action : "ADD_FIELD",
+                                             "public String stringValue;"
+                                     ]
+
                             ]
                     ]
             ]
@@ -152,36 +156,6 @@ allInjects {
                                     "java.io",
                                     "android.util.Log",
                                     "cn.com.lasong"
-                            ],
-                            addFields     : [
-                                    "public String stringValue;",
-                                    "public int intValue;",
-                                    "public static boolean booleanValue;",
-                                    "public TestCreate3 test;"
-                            ],
-                            addMethods    : [
-                                    """
-                                    public MainActivity addMethod() {
-                                        MainActivity aaa = this;
-                                        intValue = 1;
-                                        booleanValue = true;
-                                        stringValue = "addMethod";
-                                        System.out.println("addMethod");
-                                        return aaa;
-                                    }
-                                    """,
-                                    """
-                                    public void addMethod2() {
-                                        MainActivity activity;
-
-                                        if (booleanValue) {
-                                             test = new TestCreate3();
-                                             activity = test.addMethod();
-                                        }
-
-                                        Log.e("Test", "addMethod2");
-                                    }
-                                    """,
                             ],
                             modifyMethods : [
                                     [
@@ -269,3 +243,20 @@ if (parentLayout != null && parentLayout.getChildAt(0) instanceof TransferImage)
 }
 return null;
 ```
+
+## Q:
+
+出现IncompatibleClassChangeError错误, 信息关键字是
+
+__was expected to be of type direct but instead was found to be of type virtual__
+
+## A:
+
+这可能是因为修改了原来的方法, 但是方法的范围修改了
+
+比如下面的错误是我把__newParentLayout__的修饰符从原来的__private__改为了__public__
+
+java.lang.IncompatibleClassChangeError: The method 'android.widget.FrameLayout com.hitomi.tilibrary.transfer.TransferAdapter.newParentLayout(android.view.ViewGroup, int)'
+was expected to be of type direct but instead was found to be of type virtual (declaration of 'com.hitomi.tilibrary.transfer.TransferAdapter'
+appears in /data/app/cn.com.lasong-f585zSw-N26AiOoC6yrWkA==/base.apk)
+

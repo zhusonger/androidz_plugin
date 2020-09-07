@@ -50,7 +50,7 @@ publish {
     dryRun false
     override true
     artifactId = 'plugin'
-    publishVersion = '0.0.2'
+    publishVersion = '0.0.3'
     desc = 'AndroidZ Plugin'
     website = "https://github.com/zhusonger/androidz_plugin"
 }
