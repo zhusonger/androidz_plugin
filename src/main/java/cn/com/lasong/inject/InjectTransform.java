@@ -94,30 +94,30 @@ public class InjectTransform extends Transform {
                 PluginHelper.println(group, "clean = " + tmpDir.getAbsolutePath());
         }
 
-        // 添加android.jar
         BaseExtension android = extensions.findByType(BaseExtension.class);
         if (null != android && null != extension) {
-            // 加入android.jar，不然找不到android相关的所有类
-            InjectHelper.appendClassPath("android.jar", android.getBootClasspath().get(0).getAbsolutePath());
-        }
-//        if (null != extension && extension.injectDebug) {
-//            PluginHelper.prettyPrintln(group, "\"allInjects\":" + extension.toString());
-//        }
-
-        for (TransformInput input : inputs) {
-            // 遍历输入，分别遍历其中的jar以及directory
-            for (JarInput jarInput : input.getJarInputs()) {
-                //对jar文件进行处理
-                InjectHelper.transformJar(group, jarInput, extension, outputProvider, context, proDir);
-            }
-            for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
-                // 对directory进行处理
-                InjectHelper.transformCode(group, directoryInput, extension, outputProvider, context, proDir);
-            }
+            // 准备环境
+            InjectHelper.prepareEnv(group, extension.injectDebug, android, inputs);
         }
 
-        if (null != android && null != extension) {
-            InjectHelper.clearClassPath();
+        try {
+            for (TransformInput input : inputs) {
+                // 遍历输入，分别遍历其中的jar以及directory
+                for (JarInput jarInput : input.getJarInputs()) {
+                    //对jar文件进行处理
+                    InjectHelper.transformJar(group, jarInput, extension, outputProvider, context, proDir);
+                }
+                for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
+                    // 对directory进行处理
+                    InjectHelper.transformCode(group, directoryInput, extension, outputProvider, context, proDir);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (null != android && null != extension) {
+                InjectHelper.clearClassPath();
+            }
         }
     }
 }

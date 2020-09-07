@@ -25,6 +25,12 @@ buildscript {
 ### 依赖
 本插件基于[javassist](https://www.javassist.org/)以及Transform实现
 
+
+### CHANGELOG
+
+* 0.0.2
+默认自动导入所有的包名, 避免繁复的加入包名的问题
+
 ### 使用
 
 ```groovy
@@ -208,4 +214,58 @@ allInjects {
 ```groovy
 // 应用插件
 apply plugin: 'cn.com.lasong.time'
+```
+
+# FAQ:
+
+## Q:
+
+setBody设置的方法类型丢失, 比如写的代码是
+
+```
+Log.d("Test", "getImageItem");
+FrameLayout parentLayout = containLayoutArray.get(\$1);
+if (parentLayout != null && parentLayout.getChildAt(0) instanceof TransferImage) {
+    return ((TransferImage) parentLayout.getChildAt(0));
+}
+return null;
+```
+
+但是最后编译之后的代码
+
+```
+Log.d("Test", "getImageItem");
+Object object = this.containLayoutArray.get(paramInt);
+return (object == null || !(object.getChildAt(0) instanceof TransferImage)) ? null : (TransferImage)object.getChildAt(0);
+}
+```
+
+FrameLayout类型丢失了。
+
+## A:
+
+<https://www.javassist.org/tutorial/tutorial3.html>
+
+Note that no type parameters are necessary. Since get returns an Object,
+__an explicit type cast__ is needed at the caller site if the source code is compiled by Javassist.
+For example, if the type parameter T is String,
+then (String) must be inserted as follows:
+
+```
+  Wrapper w = ...
+  String s = (String)w.get();
+```
+
+The type cast is not needed if the source code is compiled by a normal Java compiler because it will automatically insert a type cast.
+
+意思就是源码通过普通java编译器会自动转换, 但是通过 Javassist 只能显式的强制转换
+添加上强制转换的代码即可。
+
+```
+Log.d("Test", "getImageItem");
+FrameLayout parentLayout = (FrameLayout) containLayoutArray.get(\$1);
+if (parentLayout != null && parentLayout.getChildAt(0) instanceof TransferImage) {
+    return ((TransferImage) parentLayout.getChildAt(0));
+}
+return null;
 ```

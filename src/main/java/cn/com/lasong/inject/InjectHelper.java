@@ -4,7 +4,9 @@ import com.android.build.api.transform.Context;
 import com.android.build.api.transform.DirectoryInput;
 import com.android.build.api.transform.Format;
 import com.android.build.api.transform.JarInput;
+import com.android.build.api.transform.TransformInput;
 import com.android.build.api.transform.TransformOutputProvider;
+import com.android.build.gradle.BaseExtension;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -15,8 +17,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +48,8 @@ public class InjectHelper {
     protected static ClassPool pool;
     // 加入类路径的记录, 方便修改
     protected final static Map<String, ClassPath> clzPaths = new HashMap<>();
+    // 记录加入的包名
+    protected final static Set<String> pkgNames = new HashSet<>();
 
     /**
      * 添加javassist类搜索路径
@@ -51,19 +57,40 @@ public class InjectHelper {
      * @param path
      * @return
      */
-    public synchronized static boolean appendClassPath(String tag, String path) {
+    public synchronized static void appendClassPath(String tag, String path) throws RuntimeException {
         if (null == pool) {
-           pool = new ClassPool(true);
+            pool = new ClassPool(true);
         }
         removeClassPath(tag);
         try {
             ClassPath classPath = pool.appendClassPath(path);
             clzPaths.put(tag, classPath);
-            return true;
-        } catch (NotFoundException e) {
+            String lower = path.toLowerCase();
+            // jar包
+            if (lower.endsWith(".jar") || lower.endsWith(".zip")) {
+                JarFile jarFile = new JarFile(path);
+                Enumeration<JarEntry> entries = jarFile.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry srcEntry = entries.nextElement();
+                    String entryName = srcEntry.getName();
+                    importPackageNameByEntry(entryName);
+                }
+                jarFile.close();
+            } else {
+                File clzDir = new File(path);
+                String clzDirPath = clzDir.getAbsolutePath() + File.separator;
+                List<File> clzFile = listClasses(clzDir);
+                if (!clzFile.isEmpty()) {
+                    File file = clzFile.get(0);
+                    String entryName = file.getAbsolutePath().replace(clzDirPath, "");
+                    importPackageNameByEntry(entryName);
+                }
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return false;
     }
 
     /**
@@ -73,6 +100,29 @@ public class InjectHelper {
         // 结束后移除这个classpool, 用同一个会有问题
         pool = null;
         clzPaths.clear();
+        pkgNames.clear();
+    }
+
+
+    /**
+     * 导入包名
+     */
+    private static void importPackageNameByEntry(String entryName) {
+        if (entryName == null || !entryName.endsWith(".class")) {
+            return;
+        }
+        int end = entryName.lastIndexOf("/");
+        if (end <= 0) {
+            return;
+        }
+        String packageName = entryName.substring(0, end).replace("/", ".");
+        importPackageName(packageName);
+    }
+    private static void importPackageName(String packageName) {
+        if (!pkgNames.contains(packageName)) {
+            pool.importPackage(packageName);
+            pkgNames.add(packageName);
+        }
     }
 
     /**
@@ -84,6 +134,53 @@ public class InjectHelper {
         ClassPath cachePath = clzPaths.get(tag);
         if (null != cachePath) {
             pool.removeClassPath(cachePath);
+        }
+    }
+
+
+    /**
+     * 准备环境
+     * 先把所有jar包和源码都加入到
+     */
+    public static void prepareEnv(String group, boolean injectDebug, BaseExtension android, Collection<TransformInput> inputs) throws RuntimeException {
+        // 清楚缓存
+        clearJarFactoryCache();
+
+        List<File> boot = android.getBootClasspath();
+        if (null != boot && !boot.isEmpty()) {
+            for (File jarFile : boot) {
+                String name = jarFile.getName();
+                // 加入相关类，不然找不到相关的所有类
+                InjectHelper.appendClassPath(name, jarFile.getAbsolutePath());
+                if (injectDebug)
+                    PluginHelper.println(group, "appendClassPath = " + jarFile.getAbsolutePath());
+            }
+        }
+
+        for (TransformInput input : inputs) {
+            // 遍历输入，分别遍历其中的jar以及directory
+            for (JarInput jarInput : input.getJarInputs()) {
+                String name = jarInput.getName();
+                String[] nameArr = name.split(":");
+                String artifact = nameArr[1];
+                boolean isLocalJar = artifact.endsWith(".jar");
+                String tag = isLocalJar ? artifact : name;
+
+                String path = jarInput.getFile().getAbsolutePath();
+                // 添加jar包路径
+                appendClassPath(tag, path);
+
+                if (injectDebug)
+                    PluginHelper.println(group, "appendClassPath jar = " + path);
+            }
+            for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
+                String path = directoryInput.getFile().getAbsolutePath();
+                // 添加源码路径
+                appendClassPath(group, path);
+
+                if (injectDebug)
+                    PluginHelper.println(group, "appendClassPath dir = " + path);
+            }
         }
     }
 
@@ -137,7 +234,7 @@ public class InjectHelper {
             if (null != injectDomain) {
 
                 // 添加jar包路径
-                appendClassPath(tag, srcFile.getAbsolutePath());
+//                appendClassPath(tag, srcFile.getAbsolutePath());
                 File srcTmpFile = new File(tmpDir, srcFile.getName());
 
                 if (extension.injectDebug) {
@@ -150,71 +247,75 @@ public class InjectHelper {
 
                 JarFile srcJar = new JarFile(srcFile);
                 JarOutputStream srcJarOutput = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(srcTmpFile)));
-                // 1. create class
-                String clzNewDir = injectDomain.clzNewDir;
-                if (null != clzNewDir && !clzNewDir.isEmpty()) {
-                    File clzDir = new File(proDir, clzNewDir);
-                    File dstDir = new File(tmpDir, clzNewDir);
-                    // 先复制到临时目录
-                    FileUtils.copyDirectory(clzDir, dstDir);
-                    // 添加临时路径
-                    appendClassPath(tag + "_clzNewDir", dstDir.getAbsolutePath());
-                    // 移除缓存文件
-                    cleanJavacCache(dstDir, srcFile);
-                    // 修改字节码
-                    writeClassToSource(group, injectDomain, extension.injectDebug, dstDir);
-                    // 修改后的字节码加入到jar包
-                    // 保留clzNewDir到classpath, 这样后面的修改就可以基于这个修改过的字节码
-                    List<File> clzList = listClasses(dstDir);
-                    String clzDirPath = dstDir.getAbsolutePath() + File.separator;
-                    for (File file : clzList) {
-                        String entryName = file.getAbsolutePath().replace(clzDirPath, "");
+                try {
+                    // 1. create class
+                    String clzNewDir = injectDomain.clzNewDir;
+                    if (null != clzNewDir && !clzNewDir.isEmpty()) {
+                        File clzDir = new File(proDir, clzNewDir);
+                        File dstDir = new File(tmpDir, clzNewDir);
+                        // 先复制到临时目录
+                        FileUtils.copyDirectory(clzDir, dstDir);
+                        // 添加临时路径
+                        appendClassPath(tag + "_clzNewDir", dstDir.getAbsolutePath());
+                        // 移除缓存文件
+                        cleanJavacCache(dstDir, srcFile);
+                        // 修改字节码
+                        writeClassToSource(group, injectDomain, extension.injectDebug, dstDir);
+                        // 修改后的字节码加入到jar包
+                        // 保留clzNewDir到classpath, 这样后面的修改就可以基于这个修改过的字节码
+                        List<File> clzList = listClasses(dstDir);
+                        String clzDirPath = dstDir.getAbsolutePath() + File.separator;
+                        for (File file : clzList) {
+                            String entryName = file.getAbsolutePath().replace(clzDirPath, "");
+                            JarEntry dstEntry = new JarEntry(entryName);
+                            srcJarOutput.putNextEntry(dstEntry);
+                            byte[] buffer = IOUtils.toByteArray(new FileInputStream(file));
+                            srcJarOutput.write(buffer);
+                            srcJarOutput.closeEntry();
+                        }
+                    }
+
+                    // 2. modify class
+                    Enumeration<JarEntry> entries = srcJar.entries();
+                    while (entries.hasMoreElements()) {
+                        JarEntry srcEntry = entries.nextElement();
+                        String entryName = srcEntry.getName();
+
                         JarEntry dstEntry = new JarEntry(entryName);
                         srcJarOutput.putNextEntry(dstEntry);
-                        byte[] buffer = IOUtils.toByteArray(new FileInputStream(file));
+                        // 修改
+                        byte[] buffer = injectClass(group, extension.injectDebug, injectDomain, entryName);
+
+                        // 如果没有修改, 使用原来的
+                        if (null == buffer) {
+                            buffer = IOUtils.toByteArray(srcJar.getInputStream(srcEntry));
+                        }
+
                         srcJarOutput.write(buffer);
                         srcJarOutput.closeEntry();
                     }
-                }
 
-                // 2. modify class
-                Enumeration<JarEntry> entries = srcJar.entries();
-                while (entries.hasMoreElements()) {
-                    JarEntry srcEntry = entries.nextElement();
-                    String entryName = srcEntry.getName();
+                    // 成功之后更新复制的源jar包
+                    srcFile = srcTmpFile;
 
-                    JarEntry dstEntry = new JarEntry(entryName);
-                    srcJarOutput.putNextEntry(dstEntry);
-                    // 修改
-                    byte[] buffer = injectClass(group, extension.injectDebug, injectDomain, entryName);
+                    // 移除临时路径, 已经加入到jar包中
+                    removeClassPath(tag + "_clzNewDir");
+                    removeClassPath(tag);
 
-                    // 如果没有修改, 使用原来的
-                    if (null == buffer) {
-                        buffer = IOUtils.toByteArray(srcJar.getInputStream(srcEntry));
+                    if (extension.injectDebug) {
+                        PluginHelper.println(group, "");
+                        PluginHelper.println(group, "name = " + name);
+                        PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
+                        PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
+                        PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
+                        PluginHelper.println(group, "========> Inject End transformJar [" + tag + "] <========");
+                        PluginHelper.println(group, "");
                     }
 
-                    srcJarOutput.write(buffer);
-                    srcJarOutput.closeEntry();
-                }
 
-
-                srcJarOutput.close();
-                srcJar.close();
-                // 成功之后更新复制的源jar包
-                srcFile = srcTmpFile;
-
-                // 移除临时路径, 已经加入到jar包中
-                removeClassPath(tag + "_clzNewDir");
-                removeClassPath(tag);
-
-                if (extension.injectDebug) {
-                    PluginHelper.println(group, "");
-                    PluginHelper.println(group, "name = " + name);
-                    PluginHelper.println(group, "srcFile = " + srcFile.getAbsolutePath());
-                    PluginHelper.println(group, "dstFile = " + dstFile.getAbsolutePath());
-                    PluginHelper.println(group, "srcTmpFile = " + srcTmpFile.getAbsolutePath());
-                    PluginHelper.println(group, "========> Inject End transformJar [" + tag + "] <========");
-                    PluginHelper.println(group, "");
+                } finally {
+                    srcJarOutput.close();
+                    srcJar.close();
                 }
             }
             // 否则没有需要注入的, 就直接复制, 不进行修改
@@ -265,7 +366,7 @@ public class InjectHelper {
 
             if (null != injectDomain) {
                 // 添加源码路径
-                appendClassPath(group, srcFile.getAbsolutePath());
+//                appendClassPath(group, srcFile.getAbsolutePath());
 
                 if (extension.injectDebug) {
                     PluginHelper.println(group, "========> Inject Begin transformCode [" + group + "] <========");
@@ -446,7 +547,7 @@ public class InjectHelper {
                     if (injectDebug)
                         PluginHelper.println(group, "");
                     for (String packageName : importPackages) {
-                        pool.importPackage(packageName);
+                        importPackageName(packageName);
                         if (injectDebug)
                             PluginHelper.println(group, "importPackage [" + packageName + "]");
                     }
@@ -537,26 +638,25 @@ public class InjectHelper {
                             ctMethod.setBody(content);
                         }
 
-                        String modifiers = method.modifiers;
-                        if (null != modifiers && modifiers.length() > 0) {
-                            int accessFlags;
-                            if (modifiers.contains("public")) {
-                                accessFlags = AccessFlag.PUBLIC;
-                            } else if (modifiers.contains("private")) {
-                                accessFlags = AccessFlag.PRIVATE;
+                        if (null != method.modifiers && method.modifiers.trim().length() > 0) {
+                            int modifiers;
+                            if (method.modifiers.contains("public")) {
+                                modifiers = AccessFlag.PUBLIC;
+                            } else if (method.modifiers.contains("private")) {
+                                modifiers = AccessFlag.PRIVATE;
                             } else {
-                                accessFlags = AccessFlag.PROTECTED;
+                                modifiers = AccessFlag.PROTECTED;
                             }
-                            if (modifiers.contains("final")) {
-                                accessFlags |= AccessFlag.FINAL;
+                            if (method.modifiers.contains("final")) {
+                                modifiers |= AccessFlag.FINAL;
                             }
-                            if (modifiers.contains("static")) {
-                                accessFlags |= AccessFlag.STATIC;
+                            if (method.modifiers.contains("static")) {
+                                modifiers |= AccessFlag.STATIC;
                             }
-                            if (modifiers.contains("synchronized")) {
-                                accessFlags |= AccessFlag.SYNCHRONIZED;
+                            if (method.modifiers.contains("synchronized")) {
+                                modifiers |= AccessFlag.SYNCHRONIZED;
                             }
-                            ctMethod.setModifiers(accessFlags);
+                            ctMethod.setModifiers(modifiers);
                         }
 
                         if (injectDebug) {
@@ -639,5 +739,25 @@ public class InjectHelper {
             }
         }
         return clzList;
+    }
+
+    /**
+     * 清理缓存, 否则容易出异常
+     * Caused by: javassist.NotFoundException: broken jar file?
+     */
+    private static void clearJarFactoryCache() {
+        try {
+            Class clazz = Class.forName("sun.net.www.protocol.jar.JarFileFactory");
+            Field fileCacheField = clazz.getDeclaredField("fileCache");
+            Field urlCacheField = clazz.getDeclaredField("urlCache");
+            fileCacheField.setAccessible(true);
+            urlCacheField.setAccessible(true);
+            Map fileCache = (Map) fileCacheField.get(null);
+            Map urlCache = (Map) urlCacheField.get(null);
+            fileCache.clear();
+            urlCache.clear();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
