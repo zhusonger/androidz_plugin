@@ -34,9 +34,9 @@ buildscript {
 
 * 0.0.3
 
-去除__addFields__和__addMethods__属性, 统一都在modifyMethods数组中。
+去除 __addFields__ 和 __addMethods__ 属性, 统一都在modifyMethods数组中。
 
-新增action配置, 值如下, 默认值是__修改__行为
+新增action配置, 值如下, 默认值是 __修改(MODIFY)__ 行为
 
 ```
 public static final String ACTION_MODIFY = "MODIFY";
@@ -45,9 +45,9 @@ public static final String ACTION_ADD_METHOD = "ADD_METHOD";
 public static final String ACTION_DEFAULT = ACTION_MODIFY;
 ```
 
-主要是考虑修改是一环扣一环的, 如果分开可能无法实效后面的修改依赖之前的修改。
+主要是考虑修改是一环扣一环的, 如果分开可能无法实现后面的修改依赖之前的修改。
 
-按照数组的顺序执行, 可以实现后面的使用前面的修改。
+按照数组的顺序执行, 可以实现后面的代码应用之前的修改。
 
 ### 使用
 
