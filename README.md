@@ -29,9 +29,11 @@ buildscript {
 ### CHANGELOG
 
 * 0.0.2
+
 默认自动导入所有的包名, 避免繁复的加入包名的问题
 
 * 0.0.3
+
 去除__addFields__和__addMethods__属性, 统一都在modifyMethods数组中。
 
 新增action配置, 值如下, 默认值是__修改__行为
