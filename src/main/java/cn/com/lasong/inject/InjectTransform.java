@@ -97,7 +97,7 @@ public class InjectTransform extends Transform {
         BaseExtension android = extensions.findByType(BaseExtension.class);
         if (null != android && null != extension) {
             // 准备环境
-            InjectHelper.prepareEnv(group, extension.injectDebug, android, inputs);
+            InjectHelper.prepareEnv(group, android, inputs);
         }
 
         try {

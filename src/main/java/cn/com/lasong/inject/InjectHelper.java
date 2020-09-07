@@ -142,7 +142,7 @@ public class InjectHelper {
      * 准备环境
      * 先把所有jar包和源码都加入到
      */
-    public static void prepareEnv(String group, boolean injectDebug, BaseExtension android, Collection<TransformInput> inputs) throws RuntimeException {
+    public static void prepareEnv(String group, BaseExtension android, Collection<TransformInput> inputs) throws RuntimeException {
         // 清楚缓存
         clearJarFactoryCache();
 
@@ -152,8 +152,6 @@ public class InjectHelper {
                 String name = jarFile.getName();
                 // 加入相关类，不然找不到相关的所有类
                 InjectHelper.appendClassPath(name, jarFile.getAbsolutePath());
-                if (injectDebug)
-                    PluginHelper.println(group, "appendClassPath = " + jarFile.getAbsolutePath());
             }
         }
 
@@ -169,17 +167,11 @@ public class InjectHelper {
                 String path = jarInput.getFile().getAbsolutePath();
                 // 添加jar包路径
                 appendClassPath(tag, path);
-
-                if (injectDebug)
-                    PluginHelper.println(group, "appendClassPath jar = " + path);
             }
             for (DirectoryInput directoryInput : input.getDirectoryInputs()) {
                 String path = directoryInput.getFile().getAbsolutePath();
                 // 添加源码路径
                 appendClassPath(group, path);
-
-                if (injectDebug)
-                    PluginHelper.println(group, "appendClassPath dir = " + path);
             }
         }
     }
