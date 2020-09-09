@@ -268,3 +268,74 @@ java.lang.IncompatibleClassChangeError: The method 'android.widget.FrameLayout c
 was expected to be of type direct but instead was found to be of type virtual (declaration of 'com.hitomi.tilibrary.transfer.TransferAdapter'
 appears in /data/app/cn.com.lasong-f585zSw-N26AiOoC6yrWkA==/base.apk)
 
+## Q:
+
+在修改的过程中, 出现奇怪的缺失 )、;等符号
+
+## A:
+
+因为javassist内的java编译器的限制, 会导致有些代码编译不过。
+
+In the current implementation, the Java compiler included in Javassist has several limitations with respect to the language that the compiler can accept. Those limitations are:
+
+1. The new syntax introduced by J2SE 5.0 (including enums and generics) has not been supported. Annotations are supported by the low level API of Javassist. See the javassist.bytecode.annotation package (and also getAnnotations() in CtClass and CtBehavior). Generics are also only partly supported. See the latter section for more details.
+
+    > 不支持J2SE 5.0引入的新语法（包括枚举和泛型）。
+    >
+    > 泛型部分支持, 泛型编译完之后实际上是具体类型。
+    >
+    > 具体说明 : <https://www.javassist.org/tutorial/tutorial3.html#generics>
+
+
+2. Array initializers, a comma-separated list of expressions enclosed by braces { and }, are not available unless the array dimension is one.
+
+    > 用大括号实现的数组初始化不支持, 除非只有一个元素
+
+3. Inner classes or anonymous classes are not supported. Note that this is a limitation of the compiler only. It cannot compile source code including an anonymous-class declaration. Javassist can read and modify a class file of inner/anonymous class.
+
+    > 不支持内部类或匿名类。
+    >
+    > 请注意，这仅是编译器的限制。
+    >
+    > 它不能编译包括匿名类声明的源代码。
+    >
+    > Javassist可以读取和修改内部/匿名类的类文件。
+
+4. Labeled continue and break statements are not supported.
+
+    > continue和break不支持
+
+5. The compiler does not correctly implement the Java method dispatch algorithm. The compiler may confuse if methods defined in a class have the same name but take different parameter lists.
+For example,
+
+    ```java
+    class A {}
+    class B extends A {}
+    class C extends B {}
+
+    class X {
+        void foo(A a) { .. }
+        void foo(B b) { .. }
+    }
+    ```
+If the compiled expression is x.foo(new C()), where x is an instance of X, the compiler may produce a call to foo(A) although the compiler can correctly compile foo((B)new C()).
+
+
+    > 编译器没有正确地实现Java方法分派算法。
+    >
+    > 如果类中定义的方法具有相同的名称但具有不同的参数列表，编译器可能会混淆。
+    >
+    > 如果编译表达式是x.foo(new C())，其中x是x的一个实例，
+    >
+    > 尽管编译器可以正确地编译foo((B)new C())，
+    >
+    > 但是编译器可能会产生一个对foo(A)的调用。
+
+6. The users are recommended to use # as the separator between a class name and a static method or field name. For example, in regular Java,
+javassist.CtClass.intType.getName()
+calls a method getName() on the object indicated by the static field intType in javassist.CtClass. In Javassist, the users can write the expression shown above but they are recommended to write:
+
+    javassist.CtClass#intType.getName()
+    so that the compiler can quickly parse the expression.
+
+    > 建议在静态方法/变量之前使用 __#__ 修饰, 这样编译器可以更快的解析表达式。
