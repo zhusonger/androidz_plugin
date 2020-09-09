@@ -533,6 +533,33 @@ public class InjectHelper {
                 if (ctClass.isFrozen()) {
                     ctClass.defrost();
                 }
+
+                // 修改方法修饰符
+                if (null != clzModify.modifiers && clzModify.modifiers.trim().length() > 0) {
+                    int modifiers;
+                    if (clzModify.modifiers.contains("public")) {
+                        modifiers = AccessFlag.PUBLIC;
+                    } else if (clzModify.modifiers.contains("private")) {
+                        modifiers = AccessFlag.PRIVATE;
+                    } else {
+                        modifiers = AccessFlag.PROTECTED;
+                    }
+                    if (clzModify.modifiers.contains("final")) {
+                        modifiers |= AccessFlag.FINAL;
+                    }
+                    if (clzModify.modifiers.contains("static")) {
+                        modifiers |= AccessFlag.STATIC;
+                    }
+                    if (clzModify.modifiers.contains("synchronized")) {
+                        modifiers |= AccessFlag.SYNCHRONIZED;
+                    }
+                    ctClass.setModifiers(modifiers);
+
+                    if (injectDebug) {
+                        PluginHelper.println(group, "modifyClass modifiers [" + clzModify.modifiers + "]");
+                    }
+                }
+
                 // 导入关联类
                 List<String> importPackages = clzModify.importPackages;
                 if (null != importPackages && !importPackages.isEmpty()) {

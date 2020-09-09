@@ -49,6 +49,10 @@ public static final String ACTION_DEFAULT = ACTION_MODIFY;
 
 按照数组的顺序执行, 可以实现后面的代码应用之前的修改。
 
+* 0.0.4
+
+修改类的修饰符
+
 ### 使用
 
 ```groovy
@@ -87,6 +91,8 @@ allInjects {
                             className     : 'io.agora.rtc.internal.RtcEngineImpl',
                             // 是否注入, 默认true
                             isInject : false,
+                            // 修改类的修饰符
+                            modifiers: "public",
                             // 代码关联的类需要导入的包, 默认引入的库都会导入, 可根据需要再添加
                             importPackages: [
                                     "java.io",

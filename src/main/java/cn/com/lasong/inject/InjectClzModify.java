@@ -17,6 +17,9 @@ public class InjectClzModify {
     // 匿名类 cn.com.lasong.base.AppManager$1
     public String className;
 
+    // 修饰符
+    public String modifiers;
+
     // 导入包
     public List<String> importPackages;
 
@@ -36,6 +39,14 @@ public class InjectClzModify {
             return className.replace(".", "/") +".class";
         }
         return null;
+    }
+
+    public String getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(String modifiers) {
+        this.modifiers = modifiers;
     }
 
     public List<String> getImportPackages() {
