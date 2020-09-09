@@ -318,8 +318,8 @@ For example,
         void foo(B b) { .. }
     }
     ```
-If the compiled expression is x.foo(new C()), where x is an instance of X, the compiler may produce a call to foo(A) although the compiler can correctly compile foo((B)new C()).
 
+    If the compiled expression is x.foo(new C()), where x is an instance of X, the compiler may produce a call to foo(A) although the compiler can correctly compile foo((B)new C()).
 
     > 编译器没有正确地实现Java方法分派算法。
     >
