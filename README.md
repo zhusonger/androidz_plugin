@@ -25,16 +25,34 @@ buildscript {
 ### 依赖
 本插件基于[javassist](https://www.javassist.org/)以及Transform实现
 
+### 方法签名规则
+|java类型|类型签名
+|  ----  | ----
+|byte	|B
+|short	|S
+|int	|I
+|long	|J
+|float	|F
+|double	|D
+|char	|C
+|boolean	|Z
+|void	|V
+|数组	|例如：int[]签名为：[I
+|类	|L全限定名;，比如String, 其签名为Ljava/lang/String;(注意后面有个分号)
+|_	|_1
+|/	|_
+|;	|_2
+|[	|_3
 
 ### CHANGELOG
 
-* 0.0.2
+#### 0.0.2
 
 默认自动导入所有的包名, 避免繁复的加入包名的问题
 
-* 0.0.3
+#### 0.0.3
 
-去除 __addFields__ 和 __addMethods__ 属性, 统一都在modifyMethods数组中。
+去除 __addFields__ 和 __addMethods__ 属性, 统一都在 __modifyMethods__ 数组中。
 
 新增action配置, 值如下, 默认值是 __修改(MODIFY)__ 行为
 
@@ -49,7 +67,7 @@ public static final String ACTION_DEFAULT = ACTION_MODIFY;
 
 按照数组的顺序执行, 可以实现后面的代码应用之前的修改。
 
-* 0.0.4
+#### 0.0.4
 
 修改类的修饰符
 
