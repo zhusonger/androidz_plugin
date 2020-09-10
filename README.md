@@ -78,7 +78,9 @@ public static final String ACTION_DEFAULT = ACTION_MODIFY;
 apply plugin: 'cn.com.lasong.inject'
 
 allInjects {
-    // 是否开启debug 目前主要打印日志
+    // 是否开启debug
+    // 打印日志 & 输出修改之后的类
+    // 在tmp下的transform目录下查看修改的类以及最终的jar包
     injectDebug true
     // 注入的节点, 区分注入的对象
     injectDomains {
@@ -134,7 +136,8 @@ allInjects {
                                             // setBody : 将方法的内容设置为要写入的代码，当方法被 abstract修饰时，该修饰符被移除；
                                             type   : "insertBefore",
                                             // lineNum只有在insertAt时生效
-                                            lineNum : 1
+                                            // 相对于方法的行数, 0表示方法开始位置
+                                            lineNum : 0
                                     ],
                                     [
                                             name     : "pullPlaybackAudioFrame",

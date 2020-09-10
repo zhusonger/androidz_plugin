@@ -142,7 +142,7 @@ public class InjectHelper {
      * 准备环境
      * 先把所有jar包和源码都加入到
      */
-    public static void prepareEnv(String group, BaseExtension android, Collection<TransformInput> inputs) throws RuntimeException {
+    public static void prepareEnv(String group, boolean injectDebug, BaseExtension android, Collection<TransformInput> inputs, File temporaryDir) throws RuntimeException {
         // 清楚缓存
         clearJarFactoryCache();
 
@@ -173,6 +173,13 @@ public class InjectHelper {
                 // 添加源码路径
                 appendClassPath(group, path);
             }
+        }
+
+
+        if (injectDebug) {
+            // build/tmp/xxx(任务名)
+            File dir = new File(temporaryDir, "dump");
+            CtClass.debugDump = dir.getAbsolutePath();
         }
     }
 
@@ -762,7 +769,8 @@ public class InjectHelper {
         } else if (type.equalsIgnoreCase("insertAfter")) {
             ctMethod.insertAfter(content);
         } else if (type.equalsIgnoreCase("insertAt")) {
-            ctMethod.insertAt(method.lineNum, content);
+            int lineStart = ctMethod.getMethodInfo().getLineNumber(0);
+            ctMethod.insertAt(lineStart + method.lineNum, content);
         } else if (type.equalsIgnoreCase("setBody")) {
             ctMethod.setBody(content);
         }
