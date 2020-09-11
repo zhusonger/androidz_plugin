@@ -233,6 +233,17 @@ apply plugin: 'cn.com.lasong.time'
 2. 如果是使用返回结果的, 先把原来的方法换个方法名, 比如加个后缀, 然后新建一个跟原来一样的方法名, 调用改过方法的原来的方法。对结果再进行修改。
 3. 如果代码里有用到匿名类的, javassist不支持。可以在代码最后调用我们自己代码中的方法, 把需要的参数传进来进行二次修改。
 
+## Q:
+
+匿名内部类如何修改?
+
+## A:
+
+匿名内部类在经过编译之后是生成了一个新的class文件, 所以我们只要把className传为匿名内部类的文件即可。
+
+匿名内部类是按照创建的顺序从1开始命名。
+
+比如[TransferLayout](https://github.com/Hitomis/transferee/blob/master/Transferee/src/main/java/com/hitomi/tilibrary/transfer/TransferLayout.java)的transListener动画回调处理, 是第三个创建的, 那我们的className就是 __com.hitomi.tilibrary.transfer.TransferLayout$3__ , 然后就跟平时修改的方式一样了。
 
 ## Q:
 
