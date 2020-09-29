@@ -23,14 +23,22 @@ public class InjectModifyMethod {
     public String newName;
 
     // 插入类型
-//    insertBefore : 在方法的起始位置插入代码；
-//    insertAfter : 在方法的所有 return 语句前插入代码以确保语句能够被执行，除非遇到exception；
-//    insertAt : 在指定的位置插入代码；
-//    setBody : 将方法的内容设置为要写入的代码，当方法被 abstract修饰时，该修饰符被移除；
+    // insertBefore : 在方法的起始位置插入代码；
+    // insertAfter : 在方法的所有 return 语句前插入代码以确保语句能够被执行，除非遇到exception；
+    // insertAt : 在指定的位置插入代码；
+    // setBody : 将方法的内容设置为要写入的代码，当方法被 abstract修饰时，该修饰符被移除；
+    // deleteAt: 在指定的位置删除代码
     public String type;
 
     // 行号, insertAt用到
     public int lineNum = -1;
+
+    // 删除行用到
+    // 起始行 相对于方法, 第一行是0
+    // 起始行0#删除行数0,起始行1#删除行数2
+    // 不加删除行数, 默认一行
+    // 起始行0,起始行1 = 起始行0#1,起始行1#1
+    public String lineRange;
 
     public String getModifiers() {
         return modifiers;
@@ -96,6 +104,14 @@ public class InjectModifyMethod {
         this.newName = newName;
     }
 
+    public String getLineRange() {
+        return lineRange;
+    }
+
+    public void setLineRange(String lineRange) {
+        this.lineRange = lineRange;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
@@ -115,6 +131,8 @@ public class InjectModifyMethod {
                 .append(type).append('\"');
         sb.append(",\"lineNum\":")
                 .append(lineNum);
+        sb.append(",\"lineRange\":")
+                .append(lineRange);
         sb.append('}');
         return sb.toString();
     }

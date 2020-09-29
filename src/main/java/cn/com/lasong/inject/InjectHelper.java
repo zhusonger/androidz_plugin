@@ -40,7 +40,9 @@ import javassist.CtField;
 import javassist.CtMethod;
 import javassist.NotFoundException;
 import javassist.bytecode.AccessFlag;
+import javassist.bytecode.CodeAttribute;
 import javassist.bytecode.Descriptor;
+import javassist.bytecode.LineNumberAttribute;
 
 public class InjectHelper {
 
@@ -756,12 +758,15 @@ public class InjectHelper {
             return;
         }
         String content = method.content;
-        if (null == content || content.length() == 0) {
+        if (!type.equalsIgnoreCase("deleteAt") && (null == content || content.length() == 0)) {
             return;
         }
 
         if (type.equalsIgnoreCase("insertAt") && method.lineNum < 0) {
             throw new IOException("modifyMethod [" + name + "] lineNum[for insertAt] can't empty !");
+        }
+        if (type.equalsIgnoreCase("deleteAt") && (method.lineRange == null || method.lineRange.length() == 0)) {
+            throw new IOException("modifyMethod [" + name + "] lineRange[for deleteAt] can't empty!");
         }
 
         if (type.equalsIgnoreCase("insertBefore")) {
@@ -773,11 +778,54 @@ public class InjectHelper {
             ctMethod.insertAt(lineStart + method.lineNum, content);
         } else if (type.equalsIgnoreCase("setBody")) {
             ctMethod.setBody(content);
+        } else if (type.equalsIgnoreCase("deleteAt")) {
+            int lineStart = ctMethod.getMethodInfo().getLineNumber(0);
+            // Access the code attribute
+            CodeAttribute codeAttribute = ctMethod.getMethodInfo().getCodeAttribute();
+
+            // Access the LineNumberAttribute
+            LineNumberAttribute lineNumberAttribute = (LineNumberAttribute) codeAttribute.getAttribute(LineNumberAttribute.tag);
+
+            if (null == lineNumberAttribute) {
+                if (injectDebug)
+                    PluginHelper.println(group, "lineNumberAttribute is null");
+                return;
+            }
+
+
+            String lineRange = method.lineRange;
+            String[] rangeArr = lineRange.split(",");
+            for (String item : rangeArr) {
+                if (null == item) {
+                    continue;
+                }
+                String[] range = item.split("#");
+                int start = Integer.parseInt(range[0]);
+                int len = 1;
+                if (range.length > 1) {
+                    len = Integer.parseInt(range[1]);
+                }
+
+                // Index in bytecode array where the instruction starts
+                int startPc = lineNumberAttribute.toStartPc(lineStart + start);
+
+                // Index in the bytecode array where the following instruction starts
+                int endPc = lineNumberAttribute.toStartPc(lineStart + start + len);
+
+                // Let's now get the bytecode array
+                byte[] code = codeAttribute.getCode();
+                for (int i = startPc; i < endPc; i++) {
+                    // change byte to a no operation code
+                    code[i] = CodeAttribute.NOP;
+                }
+            }
         }
 
         if (injectDebug) {
             PluginHelper.println(group, "modifyMethod [" + name + "] " + type);
-            PluginHelper.println(group, content);
+            if (null != content && content.length() > 0) {
+                PluginHelper.println(group, content);
+            }
         }
     }
 

@@ -71,6 +71,33 @@ public static final String ACTION_DEFAULT = ACTION_MODIFY;
 
 修改类的修饰符
 
+#### 0.0.5
+
+添加type类型 __deleteAt__ 用于删除代码
+
+使用方式如下
+
+```
+[
+        name   : "destroyItem",
+        params : "(Landroid.view.ViewGroup;ILjava.lang.Object;)",
+        type   : "deleteAt",
+        lineRange: "0,2"
+]
+```
+
+> lineRange定义:
+>
+> 起始行0#删除行数0,起始行1#删除行数2
+>
+> Tips:
+>
+>   起始行 相对于方法, 第一行是0
+>
+>   不加删除行数, 默认一行, 如下
+>
+>   起始行0,起始行1 = 起始行0#1,起始行1#1
+
 ### 使用
 
 ```groovy
