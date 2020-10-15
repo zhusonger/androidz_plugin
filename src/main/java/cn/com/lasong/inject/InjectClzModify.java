@@ -23,14 +23,8 @@ public class InjectClzModify {
     // 导入包
     public List<String> importPackages;
 
-    // 新增属性
-//    public List<String> addFields;
-
-    // 新增方法
-//    public List<String> addMethods;
-
-    // 方法修改
-    public List<InjectModifyMethod> modifyMethods;
+    // 字节码内容修改
+    public List<InjectCtModify> injectList;
     // 是否注入
     public boolean isInject = true;
 
@@ -65,22 +59,6 @@ public class InjectClzModify {
         this.className = className;
     }
 
-//    public List<String> getAddFields() {
-//        return addFields;
-//    }
-//
-//    public void setAddFields(List<String> addFields) {
-//        this.addFields = addFields;
-//    }
-//
-//    public List<String> getAddMethods() {
-//        return addMethods;
-//    }
-//
-//    public void setAddMethods(List<String> addMethods) {
-//        this.addMethods = addMethods;
-//    }
-
     public boolean isInject() {
         return isInject;
     }
@@ -89,12 +67,12 @@ public class InjectClzModify {
         isInject = inject;
     }
 
-    public List<InjectModifyMethod> getModifyMethods() {
-        return modifyMethods;
+    public List<InjectCtModify> getInjectList() {
+        return injectList;
     }
 
-    public void setModifyMethods(InjectModifyMethod[] modifyMethods) {
-        this.modifyMethods = Arrays.asList(modifyMethods);
+    public void setInjectList(InjectCtModify[] injectList) {
+        this.injectList = Arrays.asList(injectList);
     }
 
     @Override
@@ -104,12 +82,8 @@ public class InjectClzModify {
                 .append(className).append('\"');
         sb.append(",\"importPackages\":")
                 .append(importPackages);
-//        sb.append(",\"addFields\":")
-//                .append(addFields);
-//        sb.append(",\"addMethods\":")
-//                .append(addMethods);
         sb.append(",\"modifyMethods\":")
-                .append(modifyMethods);
+                .append(injectList);
         sb.append(",\"isInject\":")
                 .append(isInject);
         sb.append('}');

@@ -48,69 +48,104 @@ buildscript {
 
 #### 0.0.2
 
-默认自动导入所有的包名, 避免繁复的加入包名的问题
+* 默认自动导入所有的包名, 避免繁复的加入包名的问题
 
 #### 0.0.3
 
-去除 __addFields__ 和 __addMethods__ 属性, 统一都在 __modifyMethods__ 数组中。
+* 去除 __addFields__ 和 __addMethods__ 属性, 统一都在 __modifyMethods__ 数组中。
 
-新增action配置, 值如下, 默认值是 __修改(MODIFY)__ 行为
+* 新增action配置, 值如下, 默认值是 __修改(MODIFY)__ 行为
 
-```
-public static final String ACTION_MODIFY = "MODIFY";
-public static final String ACTION_ADD_FIELD = "ADD_FIELD";
-public static final String ACTION_ADD_METHOD = "ADD_METHOD";
-public static final String ACTION_DEFAULT = ACTION_MODIFY;
-```
+    ```
+    public static final String ACTION_MODIFY = "MODIFY";
+    public static final String ACTION_ADD_FIELD = "ADD_FIELD";
+    public static final String ACTION_ADD_METHOD = "ADD_METHOD";
+    public static final String ACTION_DEFAULT = ACTION_MODIFY;
+    ```
 
-主要是考虑修改是一环扣一环的, 如果分开可能无法实现后面的修改依赖之前的修改。
+    主要是考虑修改是一环扣一环的, 如果分开可能无法实现后面的修改依赖之前的修改。
 
-按照数组的顺序执行, 可以实现后面的代码应用之前的修改。
+    按照数组的顺序执行, 可以实现后面的代码应用之前的修改。
 
 #### 0.0.4
 
-修改类的修饰符
+* 修改类的修饰符
+
+    扩展参数:
+
+    modifiers: 类修饰符
 
 #### 0.0.5
 
-添加type类型 __deleteAt__ 用于删除代码
+* 添加type类型 __deleteAt__ 用于删除代码
 
-使用方式如下
+    扩展参数:
 
-```
-[
-        name   : "destroyItem",
-        params : "(Landroid.view.ViewGroup;ILjava.lang.Object;)",
-        type   : "deleteAt",
-        lineRange: "0,2"
-]
-```
+    type: "deleteAt"
+    lineRange : 删除的范围, 起始行0#删除行数0
 
-> lineRange定义:
->
-> 起始行0#删除行数0,起始行1#删除行数2
->
-> Tips:
->
->   起始行 相对于方法, 第一行是0
->
->   不加删除行数, 默认一行, 如下
->
->   起始行0,起始行1 = 起始行0#1,起始行1#1
+    使用方式如下
+
+    ```
+    [
+            name   : "destroyItem",
+            params : "(Landroid.view.ViewGroup;ILjava.lang.Object;)",
+            type   : "deleteAt",
+            lineRange: "0,2"
+    ]
+    ```
+
+    > lineRange定义:
+    >
+    > 起始行0#删除行数0,起始行1#删除行数2
+    >
+    > Tips:
+    >
+    >   起始行 相对于方法, 第一行是0
+    >
+    >   不加删除行数, 默认一行, 如下
+    >
+    >   起始行0,起始行1 = 起始行0#1,起始行1#1
 
 #### 0.0.6
 
-添加修改变量的修饰符、变量名
+* 添加修改变量的修饰符、变量名
 
-使用方式如下
+    扩展参数:
 
-```
-[
-        fieldName:"INDEX_NAME",
-        newFieldName:"INDEX_NAME_2",
-        fieldModifiers:"public static final"
-]
-```
+    fieldName : 变量名
+    newFieldName : 修改的变量名
+    fieldModifiers : 变量的修饰符
+
+    使用方式如下
+
+    ```
+    [
+            fieldName:"INDEX_NAME",
+            newFieldName:"INDEX_NAME_2",
+            fieldModifiers:"public static final"
+    ]
+    ```
+
+* 修改注入列表名 __modifyMethods__ 为 __injectList__
+
+* 扩展支持构造方法修改
+
+    扩展参数:
+
+    isConstructor : 是否是构造方法, true/false
+
+    使用方式如下
+
+    ```
+    [
+            isConstructor : true,
+            params: "(Landroid/content/Context;Landroid/util/AttributeSet;I)",
+            type: "insertAt",
+            lineNum:6,
+            content: """selectedColor = Color.parseColor("#999999");"""
+    ]
+    ```
 
 ### 使用
 
@@ -157,8 +192,8 @@ allInjects {
                                     "cn.com.lasong",
                                     "io.agora.rtc.internal"
                             ]
-                            // 修改方法
-                            modifyMethods : [
+                            // 修改的列表
+                            injectList : [
                                     [
                                             // 当前行为, 默认是MODIFY
                                             // MODIFY : 修改方法与变量
@@ -166,10 +201,13 @@ allInjects {
                                             // ADD_METHOD : 添加方法, 结合content使用
                                             action : "MODIFY",
 
+                                            // 是否是构造方法, 默认false
+                                            isConstructor: false,
+
                                             // 方法名, 需要修改的方法
                                             name   : "checkVoipPermissions",
 
-                                            // 方法参数签名
+                                            // 方法/构造方法参数签名
                                             params : "(Landroid.content.Context;I)",
 
                                             // 方法的内容
@@ -192,6 +230,15 @@ allInjects {
                                             // 起始行0#删除行数0,起始行1#删除行数2
                                             // 用,分割
                                             lineRange: "0#1"
+
+                                            // 变量名
+                                            fieldName:"INDEX_NAME",
+
+                                            // 修改的新变量名
+                                            newFieldName:"INDEX_NAME_2",
+
+                                            // 变量修饰符
+                                            fieldModifiers:"public static final"
                                     ]
                             ]
                     ]

@@ -1,6 +1,6 @@
 package cn.com.lasong.inject;
 
-public class InjectModifyMethod {
+public class InjectCtModify {
 
     public static final String ACTION_MODIFY = "MODIFY";
     public static final String ACTION_ADD_FIELD = "ADD_FIELD";
@@ -12,6 +12,9 @@ public class InjectModifyMethod {
 
     // 方法名
     public String name;
+
+    // 是否是修改构造方法
+    public boolean isConstructor;
 
     // 方法参数
     public String params;
@@ -145,6 +148,14 @@ public class InjectModifyMethod {
         this.fieldModifiers = fieldModifiers;
     }
 
+    public boolean isConstructor() {
+        return isConstructor;
+    }
+
+    public void setConstructor(boolean constructor) {
+        isConstructor = constructor;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
@@ -154,6 +165,8 @@ public class InjectModifyMethod {
                 .append(modifiers).append('\"');
         sb.append(",\"name\":\"")
                 .append(name).append('\"');
+        sb.append(",\"isConstructor\":")
+                .append(isConstructor);
         sb.append(",\"params\":\"")
                 .append(params).append('\"');
         sb.append(",\"fieldName\":\"")
