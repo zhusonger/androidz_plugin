@@ -852,10 +852,13 @@ public class InjectHelper {
                     continue;
                 }
                 String[] range = item.split("#");
-                int start = Integer.parseInt(range[0]);
+                if (range.length == 0) {
+                    throw new IOException("modifyCt [" + name + "] lineRange [for deleteAt] can't empty!");
+                }
+                int start = Integer.parseInt(range[0].trim());
                 int len = 1;
                 if (range.length > 1) {
-                    len = Integer.parseInt(range[1]);
+                    len = Integer.parseInt(range[1].trim());
                 }
 
                 if (injectDebug)
