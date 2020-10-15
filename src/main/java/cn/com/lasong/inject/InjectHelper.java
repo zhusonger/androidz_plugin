@@ -591,7 +591,11 @@ public class InjectHelper {
                         String action = method.action;
                         // 修改方法
                         if (InjectModifyMethod.ACTION_MODIFY.equalsIgnoreCase(action)) {
-                            modifyMethod(group, injectDebug, ctClass, method);
+                            if (null != method.name) {
+                                modifyMethod(group, injectDebug, ctClass, method);
+                            } else if (null != method.fieldName) {
+                                modifyField(group, injectDebug, ctClass, method);
+                            }
                         }
                         // 新增属性
                         else if (InjectModifyMethod.ACTION_ADD_FIELD.equalsIgnoreCase(action)) {
@@ -711,6 +715,42 @@ public class InjectHelper {
     }
 
     /**
+     * 修改属性
+     * @param group
+     * @param injectDebug
+     * @param ctClass
+     * @param method
+     * @throws Exception
+     */
+    private static void modifyField(String group, boolean injectDebug, CtClass ctClass, InjectModifyMethod method) throws Exception {
+        String fieldName = method.fieldName;
+        CtField ctField;
+        try {
+            ctField = ctClass.getDeclaredField(fieldName);
+        } catch (NotFoundException e) {
+            throw new IOException("modifyField [" + fieldName + "] fieldName is not found !");
+        }
+
+        String newFieldName = method.newFieldName;
+        if (!PluginHelper.isEmpty(newFieldName)) {
+            ctField.setName(newFieldName);
+            if (injectDebug) {
+                PluginHelper.println(group, "modifyField newFieldName [" + newFieldName+"] Successfully!");
+            }
+        }
+
+
+        if (!PluginHelper.isEmpty(method.fieldModifiers)) {
+            int modifiers = ofModifiers(method.fieldModifiers);
+            ctField.setModifiers(modifiers);
+
+            if (injectDebug) {
+                PluginHelper.println(group, "modifyField fieldModifiers [" + method.fieldModifiers+"] Successfully!");
+            }
+        }
+    }
+
+    /**
      * 修改方法
      */
     private static void modifyMethod(String group, boolean injectDebug, CtClass ctClass, InjectModifyMethod method) throws Exception {
@@ -740,23 +780,7 @@ public class InjectHelper {
         }
         // 修改方法修饰符
         if (null != method.modifiers && method.modifiers.trim().length() > 0) {
-            int modifiers;
-            if (method.modifiers.contains("public")) {
-                modifiers = AccessFlag.PUBLIC;
-            } else if (method.modifiers.contains("private")) {
-                modifiers = AccessFlag.PRIVATE;
-            } else {
-                modifiers = AccessFlag.PROTECTED;
-            }
-            if (method.modifiers.contains("final")) {
-                modifiers |= AccessFlag.FINAL;
-            }
-            if (method.modifiers.contains("static")) {
-                modifiers |= AccessFlag.STATIC;
-            }
-            if (method.modifiers.contains("synchronized")) {
-                modifiers |= AccessFlag.SYNCHRONIZED;
-            }
+            int modifiers = ofModifiers(method.modifiers);
             ctMethod.setModifiers(modifiers);
 
             if (injectDebug) {
@@ -878,5 +902,44 @@ public class InjectHelper {
         ctClass.addMethod(ctMethod);
         if (injectDebug)
             PluginHelper.println(group, "addMethod [" + method.content + "]");
+    }
+
+    /**
+     * string解析成int
+     * @param modifiersValue
+     * @return
+     */
+    private static int ofModifiers(String modifiersValue) {
+        int modifiers = 0;
+        if (modifiersValue.contains("public")) {
+            modifiers = AccessFlag.PUBLIC;
+        } else if (modifiersValue.contains("private")) {
+            modifiers = AccessFlag.PRIVATE;
+        } else if (modifiersValue.contains("protected")) {
+            modifiers = AccessFlag.PROTECTED;
+        }
+
+        if (modifiersValue.contains("final")) {
+            modifiers |= AccessFlag.FINAL;
+        }
+        if (modifiersValue.contains("static")) {
+            modifiers |= AccessFlag.STATIC;
+        }
+        if (modifiersValue.contains("synchronized")) {
+            modifiers |= AccessFlag.SYNCHRONIZED;
+        }
+        if (modifiersValue.contains("volatile")) {
+            modifiers |= AccessFlag.VOLATILE;
+        }
+        if (modifiersValue.contains("abstract")) {
+            modifiers |= AccessFlag.ABSTRACT;
+        }
+        if (modifiersValue.contains("interface")) {
+            modifiers |= AccessFlag.INTERFACE;
+        }
+        if (modifiersValue.contains("native")) {
+            modifiers |= AccessFlag.NATIVE;
+        }
+        return modifiers;
     }
 }

@@ -16,6 +16,15 @@ public class InjectModifyMethod {
     // 方法参数
     public String params;
 
+    // 变量名
+    public String fieldName;
+
+    // 新变量名
+    public String newFieldName;
+
+    // 属性修饰符
+    public String fieldModifiers;
+
     // 插入的代码
     public String content;
 
@@ -112,6 +121,30 @@ public class InjectModifyMethod {
         this.lineRange = lineRange;
     }
 
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public String getNewFieldName() {
+        return newFieldName;
+    }
+
+    public void setNewFieldName(String newFieldName) {
+        this.newFieldName = newFieldName;
+    }
+
+    public String getFieldModifiers() {
+        return fieldModifiers;
+    }
+
+    public void setFieldModifiers(String fieldModifiers) {
+        this.fieldModifiers = fieldModifiers;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
@@ -123,6 +156,12 @@ public class InjectModifyMethod {
                 .append(name).append('\"');
         sb.append(",\"params\":\"")
                 .append(params).append('\"');
+        sb.append(",\"fieldName\":\"")
+                .append(fieldName).append('\"');
+        sb.append(",\"newFieldName\":\"")
+                .append(newFieldName).append('\"');
+        sb.append(",\"fieldModifiers\":\"")
+                .append(fieldModifiers).append('\"');
         sb.append(",\"content\":\"")
                 .append(content).append('\"');
         sb.append(",\"newName\":\"")
@@ -131,8 +170,8 @@ public class InjectModifyMethod {
                 .append(type).append('\"');
         sb.append(",\"lineNum\":")
                 .append(lineNum);
-        sb.append(",\"lineRange\":")
-                .append(lineRange);
+        sb.append(",\"lineRange\":\"")
+                .append(lineRange).append('\"');
         sb.append('}');
         return sb.toString();
     }

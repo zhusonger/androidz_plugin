@@ -143,4 +143,13 @@ public class PluginHelper {
             sb.append('\t');
         }
     }
+
+    /**
+     * 字符串
+     * @param string
+     * @return
+     */
+    public static boolean isEmpty(String string) {
+        return null == string || string.length() == 0 || string.trim().length() == 0;
+    }
 }
