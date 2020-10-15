@@ -603,7 +603,18 @@ public class InjectHelper {
                         }
                     }
                 }
-                bos.write(ctClass.toBytecode());
+
+                try {
+                    boolean p = ctClass.stopPruning(true);
+                    bos.write(ctClass.toBytecode());
+                    ctClass.defrost();
+                    ctClass.stopPruning(p);
+                }
+                catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+
                 if (injectDebug)
                     PluginHelper.println(group, "modify [" + className + "] Done!");
 
@@ -806,15 +817,35 @@ public class InjectHelper {
                     len = Integer.parseInt(range[1]);
                 }
 
+                if (injectDebug)
+                    PluginHelper.println(group, "deleteAt range " + item);
+
                 // Index in bytecode array where the instruction starts
-                int startPc = lineNumberAttribute.toStartPc(lineStart + start);
+                LineNumberAttribute.Pc startPc = lineNumberAttribute.toNearPc(lineStart + start);
+
+                if (null == startPc) {
+                    if (injectDebug)
+                        PluginHelper.println(group, "deleteAt start null");
+                    continue;
+                }
+
+                if (injectDebug)
+                    PluginHelper.println(group, "deleteAt start : index = " + startPc.index+", line = " + startPc.line);
 
                 // Index in the bytecode array where the following instruction starts
-                int endPc = lineNumberAttribute.toStartPc(lineStart + start + len);
+                LineNumberAttribute.Pc endPc = lineNumberAttribute.toNearPc(lineStart + start + len);
+                if (null == endPc) {
+                    if (injectDebug)
+                        PluginHelper.println(group, "deleteAt end null");
+                    continue;
+                }
+
+                if (injectDebug)
+                    PluginHelper.println(group, "deleteAt end : index = " + endPc.index+", line = " + endPc.line);
 
                 // Let's now get the bytecode array
                 byte[] code = codeAttribute.getCode();
-                for (int i = startPc; i < endPc; i++) {
+                for (int i = startPc.index; i < endPc.index; i++) {
                     // change byte to a no operation code
                     code[i] = CodeAttribute.NOP;
                 }
