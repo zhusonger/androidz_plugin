@@ -806,7 +806,6 @@ public class InjectHelper {
 
         String type = method.type;
         if (PluginHelper.isEmpty(type)) {
-//            throw new IOException("modifyCt [" + name + "] type can't be empty!");
             return;
         }
         String content = method.content;
