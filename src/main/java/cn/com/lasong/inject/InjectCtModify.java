@@ -169,6 +169,14 @@ public class InjectCtModify {
         this.catchType = catchType;
     }
 
+    public String getCatchContent() {
+        return catchContent;
+    }
+
+    public void setCatchContent(String catchContent) {
+        this.catchContent = catchContent;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
