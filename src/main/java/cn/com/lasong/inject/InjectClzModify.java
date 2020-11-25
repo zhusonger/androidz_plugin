@@ -75,10 +75,6 @@ public class InjectClzModify {
         this.injectList = Arrays.asList(injectList);
     }
 
-    public void setInjectList(List<InjectCtModify> injectList) {
-        this.injectList = injectList;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
