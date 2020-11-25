@@ -785,6 +785,24 @@ public class InjectHelper {
             throw new IOException("modifyCt [" + name + "] is not found!");
         }
 
+        String catchType = method.catchType;
+        String catchContent = method.catchContent;
+
+        if (!PluginHelper.isEmpty(catchContent) && !PluginHelper.isEmpty(catchType)) {
+            try {
+                CtClass eType = pool.get(catchType);
+                ctBehavior.addCatch(catchContent, eType);
+
+                if (injectDebug) {
+                    PluginHelper.println(group, "modifyCt addCatch [" + catchType + "]");
+                    PluginHelper.println(group, catchContent);
+                }
+            } catch (Exception e) {
+                PluginHelper.printlnErr(group, "modifyCt catchType [" + catchType + ": "
+                        + catchContent + "]\n Error:" + e.getLocalizedMessage());
+                throw new IOException("modifyCt catchType [" + catchType + "] Failure!");
+            }
+        }
         // 修改方法名
         if (method.newName != null && method.newName.trim().length() > 0) {
             if (ctBehavior instanceof CtMethod) {

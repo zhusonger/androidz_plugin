@@ -52,6 +52,11 @@ public class InjectCtModify {
     // 起始行0,起始行1 = 起始行0#1,起始行1#1
     public String lineRange;
 
+    // 异常捕获
+    public String catchType;
+    // 捕获内容代码
+    public String catchContent;
+
     public String getModifiers() {
         return modifiers;
     }
@@ -156,6 +161,14 @@ public class InjectCtModify {
         isConstructor = constructor;
     }
 
+    public String getCatchType() {
+        return catchType;
+    }
+
+    public void setCatchType(String catchType) {
+        this.catchType = catchType;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");
@@ -185,6 +198,8 @@ public class InjectCtModify {
                 .append(lineNum);
         sb.append(",\"lineRange\":\"")
                 .append(lineRange).append('\"');
+        sb.append(",\"catchType\":\"")
+                .append(catchType).append('\"');
         sb.append('}');
         return sb.toString();
     }

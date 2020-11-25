@@ -146,6 +146,26 @@ buildscript {
             content: """selectedColor = Color.parseColor("#999999");"""
     ]
     ```
+#### 0.0.7
+
+* 新增捕获异常
+
+    扩展参数:
+
+    catchType : 捕获的异常
+    catchContent : 异常捕获内的代码块, 必须以throw或者return结尾
+
+    使用方式如下
+
+    ```
+    [
+        name   : "run",
+        params : "()",
+        catchType : "java.lang.Exception",
+        catchContent : "{ System.out.println($e); throw $e; }"
+    ]
+    ```
+
 
 ### 使用
 
