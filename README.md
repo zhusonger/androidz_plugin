@@ -273,6 +273,13 @@ allInjects {
 }
 ```
 
+#### 0.0.7.1
+
+fix:
+
+* update gradle from 3.5.3 to 3.6.4
+* fix ArrayIndexOutOfBoundsException about spilt package name
+
 
 ## 1.2 Time插件
 
