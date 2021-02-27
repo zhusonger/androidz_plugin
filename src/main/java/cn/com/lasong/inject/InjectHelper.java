@@ -162,6 +162,10 @@ public class InjectHelper {
             // 遍历输入，分别遍历其中的jar以及directory
             for (JarInput jarInput : input.getJarInputs()) {
                 String name = jarInput.getName();
+                if (PluginHelper.isEmpty(name) || !name.contains(":")) {
+                    PluginHelper.println(group, "UnKnown Input : " + name);
+                    continue;
+                }
                 String[] nameArr = name.split(":");
                 String artifact = nameArr[1];
                 boolean isLocalJar = artifact.endsWith(".jar");
@@ -202,6 +206,25 @@ public class InjectHelper {
         // android.local.jars:SenseArSourceManager-release-runtime.jar:12a9d3c4f421868d738d34abf42bbe7e83e4ff1c
         // cn.com.lasong:base:0.0.2
         String name = input.getName();
+        // 无法识别的直接加入
+        if (PluginHelper.isEmpty(name) || !name.contains(":")) {
+            File dstFile = outputProvider.getContentLocation(input.getName(), input.getContentTypes(),
+                    input.getScopes(), Format.JAR);
+
+            File srcFile = input.getFile();
+
+            PluginHelper.println(group, "UnKnown Input : " + name
+                    + ", src=" + srcFile.getAbsolutePath()
+                    + ", dst=" + dstFile.getAbsolutePath());
+
+            // 写入到目标文件
+            FileUtils.copyFile(srcFile, dstFile);
+
+            // 更换最终的源码路径
+            appendClassPath(group, dstFile.getAbsolutePath());
+
+            return;
+        }
         String[] nameArr = name.split(":");
         String artifact = nameArr[1];
         boolean isLocalJar = artifact.endsWith(".jar");

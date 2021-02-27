@@ -10,7 +10,7 @@ dependencies {
     implementation gradleApi()
 
     //从2.0.0版本开始就是在gradle-api中了
-    implementation 'com.android.tools.build:gradle:3.5.3'
+    implementation 'com.android.tools.build:gradle:3.6.4'
 
     // javassist 相关修改字节码
     implementation 'org.javassist:javassist:3.27.0-GA'
@@ -50,7 +50,7 @@ publish {
     dryRun false
     override false
     artifactId = 'plugin'
-    publishVersion = '0.0.7'
+    publishVersion = '0.0.7.1'
     desc = 'AndroidZ Plugin'
     website = "https://github.com/zhusonger/androidz_plugin"
 }
