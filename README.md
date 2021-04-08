@@ -1,6 +1,8 @@
 # Plugin
 插件库
 
+__因为jcenter的关停, 迁移到了jitpack, 统一到一个项目中([AndroidZ](https://github.com/zhusonger/androidz))__
+
 # 0. 引入
 
 ```
